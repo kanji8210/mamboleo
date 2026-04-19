@@ -1,13 +1,14 @@
-import { MapContainer, TileLayer } from 'react-leaflet'
+import { MapContainer, TileLayer, useMapEvents } from 'react-leaflet'
 import MarkerClusterGroup from 'react-leaflet-cluster'
 import L from 'leaflet'
 import { motion, AnimatePresence } from 'framer-motion'
-import { AlertTriangle, MapPin, RefreshCw, WifiOff } from 'lucide-react'
+import { AlertTriangle, MapPin, RefreshCw, WifiOff, Crosshair } from 'lucide-react'
 import type { Incident } from '@/types/incident'
 import { IncidentMarker } from './IncidentMarker'
 import { LiveIndicator } from './LiveIndicator'
 import { PingLayer } from './PingLayer'
 import { MapController } from './MapController'
+import { MapLegend } from './MapLegend'
 
 const NAIROBI: [number, number] = [-1.286389, 36.817223]
 
@@ -19,6 +20,22 @@ interface IncidentMapProps {
   isLoading?: boolean
   isError?: boolean
   onRetry?: () => void
+  onIncidentClick?: (incident: Incident) => void
+  isPickingLocation?: boolean
+  onLocationPicked?: (lat: number, lng: number) => void
+}
+
+function LocationPickerLayer({
+  onLocationPicked,
+}: {
+  onLocationPicked: (lat: number, lng: number) => void
+}) {
+  useMapEvents({
+    click(e) {
+      onLocationPicked(e.latlng.lat, e.latlng.lng)
+    },
+  })
+  return null
 }
 
 function buildClusterIcon(count: number): L.DivIcon {
@@ -54,6 +71,9 @@ export function IncidentMap({
   isLoading = false,
   isError = false,
   onRetry,
+  onIncidentClick,
+  isPickingLocation = false,
+  onLocationPicked,
 }: IncidentMapProps) {
   const isDoneEmpty = !isLoading && !isError && allIncidents.length === 0
 
@@ -61,6 +81,27 @@ export function IncidentMap({
     <div className="absolute inset-0">
       {/* LIVE badge — overlaid above the map */}
       <LiveIndicator />
+
+      {/* Map legend */}
+      <MapLegend />
+
+      {/* Pick-location strip */}
+      <AnimatePresence>
+        {isPickingLocation && (
+          <motion.div
+            key="pick-strip"
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="absolute top-4 left-1/2 -translate-x-1/2 z-[700] pointer-events-none"
+          >
+            <div className="flex items-center gap-2 bg-red-600/90 backdrop-blur-sm text-white text-sm font-semibold rounded-full px-4 py-2 shadow-lg">
+              <Crosshair size={14} />
+              Tap map to pick location
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ── Empty / Error overlay ──────────────────────────────────────── */}
       <AnimatePresence>
@@ -143,7 +184,11 @@ export function IncidentMap({
           animate
         >
           {incidents.map((incident) => (
-            <IncidentMarker key={incident.id} incident={incident} />
+            <IncidentMarker
+              key={incident.id}
+              incident={incident}
+              onClick={onIncidentClick ?? (() => undefined)}
+            />
           ))}
         </MarkerClusterGroup>
 
@@ -152,6 +197,11 @@ export function IncidentMap({
 
         {/* Programmatic pan/zoom from sidebar clicks */}
         <MapController target={mapTarget} />
+
+        {/* Location picker for report modal */}
+        {isPickingLocation && onLocationPicked && (
+          <LocationPickerLayer onLocationPicked={onLocationPicked} />
+        )}
       </MapContainer>
     </div>
   )

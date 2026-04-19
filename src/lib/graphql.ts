@@ -29,6 +29,13 @@ export const INCIDENTS_QUERY = gql`
           latitude
           longitude
           severity
+          status
+          incidentTime
+          videoUrl
+          reporterName
+          isAnonymous
+          isVerified
+          corroborationCount
         }
       }
     }
@@ -46,6 +53,13 @@ function normalizeIncident(raw: RawIncident): Incident {
       latitude: Number(raw.incidentFields.latitude),
       longitude: Number(raw.incidentFields.longitude),
       severity: raw.incidentFields.severity as Incident['incidentFields']['severity'],
+      status: (raw.incidentFields.status as Incident['incidentFields']['status']) ?? 'unknown',
+      incidentTime: raw.incidentFields.incidentTime ?? null,
+      videoUrl: raw.incidentFields.videoUrl ?? null,
+      reporterName: raw.incidentFields.reporterName ?? null,
+      isAnonymous: raw.incidentFields.isAnonymous ?? true,
+      isVerified: raw.incidentFields.isVerified ?? true,
+      corroborationCount: raw.incidentFields.corroborationCount ?? 0,
     },
   }
 }

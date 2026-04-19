@@ -1,140 +1,86 @@
-import { CircleMarker, Popup } from 'react-leaflet'
-import { motion } from 'framer-motion'
-import { Calendar, Flame, Car, Shield, CloudRain } from 'lucide-react'
-import { formatDistanceToNow } from 'date-fns'
-import type { Incident, IncidentType } from '@/types/incident'
-import {
-  INCIDENT_COLORS,
-  INCIDENT_LABELS,
-  INCIDENT_BG,
-  SEVERITY_COLORS,
-  SEVERITY_BG,
-} from '@/types/incident'
-import { stripHtml } from '@/lib/utils'
+import { useMemo } from 'react'
+import { Marker } from 'react-leaflet'
+import L from 'leaflet'
+import type { Incident, IncidentType, SeverityLevel } from '@/types/incident'
+import { INCIDENT_COLORS } from '@/types/incident'
 
 interface IncidentMarkerProps {
   incident: Incident
+  onClick: (incident: Incident) => void
 }
 
-// Icon map for each incident type
-const TYPE_ICONS: Record<IncidentType, React.ReactNode> = {
-  fire: <Flame size={11} />,
-  accident: <Car size={11} />,
-  police: <Shield size={11} />,
-  weather: <CloudRain size={11} />,
+// â”€â”€â”€ Inline SVG paths per incident type â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+const PIN_PATHS: Record<IncidentType, { d: string; stroke: boolean }> = {
+  fire: {
+    d: 'M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z',
+    stroke: false,
+  },
+  accident: {
+    d: 'm21.73 18-8-14a2 2 0 0 0-3.46 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3z',
+    stroke: false,
+  },
+  police: {
+    d: 'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z',
+    stroke: false,
+  },
+  weather: {
+    d: 'M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242M16 14v6M8 14v6M12 16v6',
+    stroke: true,
+  },
 }
 
-export function IncidentMarker({ incident }: IncidentMarkerProps) {
-  const { type, latitude, longitude, severity } = incident.incidentFields
+// â”€â”€â”€ Pin size by severity â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+const SEVERITY_SIZE: Record<SeverityLevel, { pin: number; icon: number }> = {
+  low:    { pin: 28, icon: 12 },
+  medium: { pin: 36, icon: 16 },
+  high:   { pin: 44, icon: 20 },
+}
+
+function buildPinIcon(
+  type: IncidentType,
+  severity: SeverityLevel,
+  color: string,
+  isVerified: boolean,
+): L.DivIcon {
+  const { pin, icon } = SEVERITY_SIZE[severity]
+  const { d, stroke } = PIN_PATHS[type]
+
+  const svg = stroke
+    ? `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="${icon}" height="${icon}" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="${d}"/></svg>`
+    : `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="${icon}" height="${icon}" fill="white"><path d="${d}"/></svg>`
+
+  const classes = [
+    'incident-pin',
+    severity === 'high' ? 'incident-pin--pulse' : '',
+    !isVerified ? 'incident-pin--unverified' : '',
+  ].filter(Boolean).join(' ')
+
+  return L.divIcon({
+    html: `<div class="${classes}" style="width:${pin}px;height:${pin}px;background:${color};color:${color};">${svg}</div>`,
+    className: '',
+    iconSize: [pin, pin],
+    iconAnchor: [pin / 2, pin / 2],
+  })
+}
+
+// â”€â”€â”€ Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+export function IncidentMarker({ incident, onClick }: IncidentMarkerProps) {
+  const { type, latitude, longitude, severity, isVerified } = incident.incidentFields
   const color = INCIDENT_COLORS[type]
-  const typeBg = INCIDENT_BG[type]
-  const sevColor = SEVERITY_COLORS[severity]
-  const sevBg = SEVERITY_BG[severity]
+
+  const icon = useMemo(
+    () => buildPinIcon(type, severity, color, isVerified),
+    [type, severity, color, isVerified],
+  )
 
   return (
-    <CircleMarker
-      center={[latitude, longitude]}
-      radius={9}
-      pathOptions={{
-        color,
-        fillColor: color,
-        fillOpacity: 0.82,
-        weight: 2,
-        opacity: 1,
-      }}
-    >
-      <Popup minWidth={240} maxWidth={300}>
-        {/* Framer Motion animates on popup mount */}
-        <motion.div
-          initial={{ opacity: 0, scale: 0.94, y: 4 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          transition={{ duration: 0.18, ease: 'easeOut' }}
-        >
-          {/* Type + Severity badges */}
-          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '10px' }}>
-            <span
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '4px',
-                padding: '3px 9px',
-                borderRadius: '999px',
-                fontSize: '11px',
-                fontWeight: 600,
-                backgroundColor: typeBg,
-                color,
-                border: `1px solid ${color}55`,
-              }}
-            >
-              {TYPE_ICONS[type]}
-              {INCIDENT_LABELS[type]}
-            </span>
-
-            <span
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                padding: '3px 9px',
-                borderRadius: '999px',
-                fontSize: '11px',
-                fontWeight: 600,
-                backgroundColor: sevBg,
-                color: sevColor,
-                border: `1px solid ${sevColor}55`,
-                textTransform: 'capitalize',
-              }}
-            >
-              {severity}
-            </span>
-          </div>
-
-          {/* Title */}
-          <h3
-            style={{
-              margin: '0 0 6px',
-              fontSize: '13px',
-              fontWeight: 700,
-              color: '#f1f5f9',
-              lineHeight: 1.4,
-            }}
-          >
-            {incident.title}
-          </h3>
-
-          {/* Timestamp */}
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '5px',
-              marginBottom: '8px',
-              color: '#64748b',
-              fontSize: '11px',
-            }}
-          >
-            <Calendar size={11} />
-            <span>
-              {formatDistanceToNow(new Date(incident.date), { addSuffix: true })}
-            </span>
-          </div>
-
-          {/* Description */}
-          {incident.excerpt && (
-            <p
-              style={{
-                margin: 0,
-                fontSize: '11px',
-                color: '#94a3b8',
-                lineHeight: 1.55,
-                maxHeight: '60px',
-                overflow: 'hidden',
-              }}
-            >
-              {stripHtml(incident.excerpt)}
-            </p>
-          )}
-        </motion.div>
-      </Popup>
-    </CircleMarker>
+    <Marker
+      position={[latitude, longitude]}
+      icon={icon}
+      eventHandlers={{ click: () => onClick(incident) }}
+    />
   )
 }

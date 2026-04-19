@@ -3,12 +3,20 @@
 export type IncidentType = 'fire' | 'accident' | 'police' | 'weather'
 export type SeverityLevel = 'low' | 'medium' | 'high'
 export type FilterOption = 'all' | IncidentType
+export type IncidentStatus = 'all_clear' | 'unsafe' | 'police_operating' | 'police_aggressive' | 'unknown'
 
 export interface IncidentFields {
   type: IncidentType
   latitude: number
   longitude: number
   severity: SeverityLevel
+  status: IncidentStatus
+  incidentTime: string | null
+  videoUrl: string | null
+  reporterName: string | null
+  isAnonymous: boolean
+  isVerified: boolean
+  corroborationCount: number
 }
 
 export interface Incident {
@@ -31,6 +39,13 @@ export interface RawIncident {
     latitude: string | number
     longitude: string | number
     severity: string
+    status: string
+    incidentTime: string | null
+    videoUrl: string | null
+    reporterName: string | null
+    isAnonymous: boolean
+    isVerified: boolean
+    corroborationCount: number
   }
 }
 
@@ -73,4 +88,28 @@ export const SEVERITY_BG: Record<SeverityLevel, string> = {
   low: 'rgba(74,222,128,0.14)',
   medium: 'rgba(250,204,21,0.14)',
   high: 'rgba(248,113,113,0.14)',
+}
+
+export const STATUS_LABELS: Record<IncidentStatus, string> = {
+  all_clear: 'All Clear',
+  unsafe: 'Unsafe',
+  police_operating: 'Police Operating',
+  police_aggressive: 'Police Aggressive',
+  unknown: 'Status Unknown',
+}
+
+export const STATUS_COLORS: Record<IncidentStatus, string> = {
+  all_clear: '#22c55e',
+  unsafe: '#ef4444',
+  police_operating: '#3b82f6',
+  police_aggressive: '#f97316',
+  unknown: '#6b7280',
+}
+
+export const STATUS_BG: Record<IncidentStatus, string> = {
+  all_clear: 'rgba(34,197,94,0.14)',
+  unsafe: 'rgba(239,68,68,0.14)',
+  police_operating: 'rgba(59,130,246,0.14)',
+  police_aggressive: 'rgba(249,115,22,0.14)',
+  unknown: 'rgba(107,114,128,0.14)',
 }

@@ -1,12 +1,14 @@
 import { useState, useCallback, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { Toaster } from 'sonner'
-import { Menu, MapPin, RefreshCw, Wifi, WifiOff, ArrowLeft } from 'lucide-react'
+import { Menu, MapPin, RefreshCw, Wifi, WifiOff, ArrowLeft, Plus } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 
 import { IncidentMap } from '@/components/map/IncidentMap'
 import { Sidebar } from '@/components/sidebar/Sidebar'
 import { Skeleton } from '@/components/ui/skeleton'
+import { IncidentPanel } from '@/components/incident/IncidentPanel'
+import { ReportModal } from '@/components/report/ReportModal'
 import { useIncidents } from '@/hooks/useIncidents'
 import type { Incident, FilterOption } from '@/types/incident'
 
@@ -15,6 +17,8 @@ export function MapPage() {
   const [filter, setFilter] = useState<FilterOption>('all')
   const [newIncidentIds, setNewIncidentIds] = useState<Set<string>>(new Set())
   const [mapTarget, setMapTarget] = useState<[number, number] | null>(null)
+  const [selectedIncident, setSelectedIncident] = useState<Incident | null>(null)
+  const [isReportOpen, setIsReportOpen] = useState(false)
 
   // Lock body scroll on mount, restore on unmount
   useEffect(() => {
@@ -38,6 +42,7 @@ export function MapPage() {
 
   const handleIncidentClick = useCallback((incident: Incident) => {
     setMapTarget([incident.incidentFields.latitude, incident.incidentFields.longitude])
+    setSelectedIncident(incident)
   }, [])
 
   const isFirstLoad = isLoading && allIncidents.length === 0
@@ -54,6 +59,7 @@ export function MapPage() {
         isLoading={isLoading}
         isError={isError}
         onRetry={() => void refetch()}
+        onIncidentClick={handleIncidentClick}
       />
 
       {/* ── First-load skeleton overlay ──────────────────────────────────── */}
@@ -151,6 +157,31 @@ export function MapPage() {
           </div>
         </div>
       </div>
+
+      {/* ── Incident detail panel ────────────────────────────────────────── */}
+      <IncidentPanel
+        incident={selectedIncident}
+        onClose={() => setSelectedIncident(null)}
+      />
+
+      {/* ── Report incident FAB ──────────────────────────────────────────── */}
+      <motion.button
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
+        onClick={() => setIsReportOpen(true)}
+        className="absolute bottom-6 right-4 z-[780] flex items-center gap-2 bg-red-600 hover:bg-red-500 text-white text-sm font-bold rounded-2xl px-4 py-3 shadow-2xl transition-colors"
+        aria-label="Report an incident"
+      >
+        <Plus size={16} />
+        Report
+      </motion.button>
+
+      {/* ── Report modal ─────────────────────────────────────────────────── */}
+      <ReportModal
+        isOpen={isReportOpen}
+        onClose={() => setIsReportOpen(false)}
+        onSubmitSuccess={() => void refetch()}
+      />
 
       {/* ── Collapsible sidebar ──────────────────────────────────────────── */}
       <Sidebar
