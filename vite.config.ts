@@ -3,7 +3,15 @@ import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 import path from 'path'
 
+const wpUrl = process.env.VITE_WP_URL ?? 'http://localhost/wordpress'
+const appPath = `${wpUrl}/mamboleo/`
+
 export default defineConfig({
+  // Use './' so Vite outputs relative asset paths — required when the built
+  // files are served from a WordPress plugin sub-directory rather than the
+  // site root.  PHP (mamboleo.php) loads each file with its absolute URL, so
+  // relative paths between chunks resolve correctly from the module origin.
+  base: './',
   plugins: [
     react(),
     VitePWA({
@@ -17,8 +25,9 @@ export default defineConfig({
         background_color: '#0a0b0e',
         display: 'standalone',
         orientation: 'portrait',
-        scope: '/',
-        start_url: '/',
+        // Scope to the WordPress page only — avoids hijacking the entire WP site
+        scope: appPath,
+        start_url: appPath,
         icons: [
           {
             src: 'icons/icon-192.png',
