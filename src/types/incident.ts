@@ -1,6 +1,6 @@
 // ─── Incident domain types ────────────────────────────────────────────────
 
-export type IncidentType = 'fire' | 'accident' | 'police' | 'weather' | 'military_ops' | 'civil_unrest'
+export type IncidentType = 'fire' | 'accident' | 'police' | 'weather'
 export type SeverityLevel = 'low' | 'medium' | 'high'
 export type FilterOption = 'all' | IncidentType
 export type IncidentStatus = 'all_clear' | 'unsafe' | 'police_operating' | 'police_aggressive' | 'unknown'
@@ -62,8 +62,6 @@ export const INCIDENT_COLORS: Record<IncidentType, string> = {
   accident: '#f97316',
   police: '#3b82f6',
   weather: '#06b6d4',
-  military_ops: '#64748b', // slate
-  civil_unrest: '#be123c', // rose
 }
 
 export const INCIDENT_LABELS: Record<IncidentType, string> = {
@@ -71,8 +69,6 @@ export const INCIDENT_LABELS: Record<IncidentType, string> = {
   accident: 'Accident',
   police: 'Police',
   weather: 'Weather',
-  military_ops: 'Military Ops',
-  civil_unrest: 'Civil Unrest',
 }
 
 export const INCIDENT_BG: Record<IncidentType, string> = {
@@ -80,8 +76,6 @@ export const INCIDENT_BG: Record<IncidentType, string> = {
   accident: 'rgba(249,115,22,0.14)',
   police: 'rgba(59,130,246,0.14)',
   weather: 'rgba(6,182,212,0.14)',
-  military_ops: 'rgba(100,116,139,0.14)',
-  civil_unrest: 'rgba(190,18,60,0.14)',
 }
 
 export const SEVERITY_COLORS: Record<SeverityLevel, string> = {
