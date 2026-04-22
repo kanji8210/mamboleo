@@ -18,11 +18,15 @@ const TOTAL_STEPS = 6
 const NAIROBI_CENTER: [number, number] = [-1.2921, 36.8219]
 const TILE_URL = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
 
+import { AlertOctagon, Flag } from 'lucide-react'
+
 const INCIDENT_TYPES: { value: IncidentType; Icon: React.ElementType; label: string; color: string }[] = [
   { value: 'fire',     Icon: Flame,     label: INCIDENT_LABELS.fire,     color: '#f97316' },
   { value: 'accident', Icon: Car,       label: INCIDENT_LABELS.accident, color: '#eab308' },
   { value: 'police',   Icon: Shield,    label: INCIDENT_LABELS.police,   color: '#3b82f6' },
   { value: 'weather',  Icon: CloudRain, label: INCIDENT_LABELS.weather,  color: '#22d3ee' },
+  { value: 'military_ops', Icon: AlertOctagon, label: INCIDENT_LABELS.military_ops, color: '#64748b' },
+  { value: 'civil_unrest', Icon: Flag, label: INCIDENT_LABELS.civil_unrest, color: '#be123c' },
 ]
 
 const STATUSES: { value: IncidentStatus; Icon: React.ElementType; label: string; color: string }[] = [
@@ -579,18 +583,19 @@ export function ReportModal({ isOpen, onClose, onSubmitSuccess }: ReportModalPro
           </div>
 
           {/* Footer */}
-          {!done && (
-            <div className="flex items-center justify-between gap-3 px-5 py-4 border-t border-border">
-              {step > 1 ? (
-                <button
+            <Dialog.Content
+              className="fixed inset-x-1 top-[2vh] z-[810] mx-auto w-[98vw] max-w-md bg-card border border-border rounded-2xl shadow-2xl overflow-hidden focus:outline-none sm:inset-x-auto sm:left-[50%] sm:translate-x-[-50%] sm:w-full sm:top-[50%] sm:translate-y-[-50%]"
+              style={{ maxHeight: '96vh' }}
+              aria-labelledby="report-modal-title"
+            >
                   onClick={() => setStep(s => s - 1)}
-                  className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            <div className="flex items-center justify-between px-3 py-3 sm:px-5 sm:py-4 border-b border-border">
                 >
-                  <ChevronLeft size={15} /> Back
+            <div className="px-2 py-3 sm:px-5 sm:py-5 max-h-[60vh] overflow-y-auto">
                 </button>
-              ) : (
+            <div className="flex items-center justify-between gap-3 px-2 py-3 sm:px-5 sm:py-4 border-t border-border">
                 <div />
-              )}
+        <div className="rounded-xl overflow-hidden border border-border h-40 sm:h-56">
 
               {isLast ? (
                 <button
