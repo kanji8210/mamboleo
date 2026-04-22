@@ -1,12 +1,11 @@
 import { useState, useCallback, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { Toaster } from 'sonner'
-import { Menu, MapPin, RefreshCw, Wifi, WifiOff, ArrowLeft, Plus } from 'lucide-react'
+import { Menu, MapPin, RefreshCw, Wifi, WifiOff, ArrowLeft, Plus, Loader2 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 
 import { IncidentMap } from '@/components/map/IncidentMap'
 import { Sidebar } from '@/components/sidebar/Sidebar'
-import { Skeleton } from '@/components/ui/skeleton'
 import { IncidentPanel } from '@/components/incident/IncidentPanel'
 import { ReportModal } from '@/components/report/ReportModal'
 import { useIncidents } from '@/hooks/useIncidents'
@@ -45,7 +44,8 @@ export function MapPage() {
     setSelectedIncident(incident)
   }, [])
 
-  const isFirstLoad = isLoading && allIncidents.length === 0
+
+  const isFirstLoad = isLoading && allIncidents.length === 0;
 
   return (
     <div className="fixed inset-0 bg-background overflow-hidden">
@@ -61,33 +61,6 @@ export function MapPage() {
         onRetry={() => void refetch()}
         onIncidentClick={handleIncidentClick}
       />
-
-      {/* ── First-load skeleton overlay ──────────────────────────────────── */}
-      <AnimatePresence>
-        {isFirstLoad && (
-          <motion.div
-            key="skeleton"
-            initial={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.4 }}
-            className="absolute inset-0 z-[900] flex flex-col items-center justify-center bg-background/80 backdrop-blur-lg gap-6"
-          >
-            <div className="flex flex-col items-center gap-3">
-              <Skeleton className="w-12 h-12 rounded-xl" />
-              <Skeleton className="w-36 h-4" />
-              <Skeleton className="w-24 h-3" />
-            </div>
-            <div className="grid grid-cols-3 gap-2">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <Skeleton key={i} className="w-24 h-14 rounded-xl" />
-              ))}
-            </div>
-            <p className="text-xs text-muted-foreground/60 font-mono tracking-widest animate-pulse">
-              LOADING INCIDENTS…
-            </p>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {/* ── Top navigation bar ───────────────────────────────────────────── */}
       <div className="absolute top-0 left-0 right-0 z-[800] pointer-events-none">
@@ -118,41 +91,60 @@ export function MapPage() {
             </motion.button>
           </div>
 
-          {/* Right status chips */}
+          {/* Right status chips + Report button */}
           <div className="pointer-events-auto flex flex-col items-end gap-2">
-            <AnimatePresence>
-              {isError && (
-                <motion.div
-                  initial={{ opacity: 0, y: -6 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -6 }}
-                  className="flex items-center gap-2 bg-red-950/90 border border-red-800/70 rounded-lg px-3 py-1.5 text-xs text-red-400 shadow-lg"
-                >
-                  <WifiOff size={11} />
-                  <span className="font-medium">Connection error</span>
-                  <button
-                    onClick={() => void refetch()}
-                    className="hover:text-red-300 transition-colors ml-1"
-                    aria-label="Retry"
+            <div className="flex items-center gap-2">
+              <AnimatePresence>
+                {isError && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -6 }}
+                    className="flex items-center gap-2 bg-red-950/90 border border-red-800/70 rounded-lg px-3 py-1.5 text-xs text-red-400 shadow-lg"
                   >
-                    <RefreshCw size={11} />
-                  </button>
-                </motion.div>
+                    <WifiOff size={11} />
+                    <span className="font-medium">Connection error</span>
+                    <button
+                      onClick={() => void refetch()}
+                      className="hover:text-red-300 transition-colors ml-1"
+                      aria-label="Retry"
+                    >
+                      <RefreshCw size={11} />
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {isFetching && (
+                <div className="flex items-center gap-1.5 bg-card/85 backdrop-blur-md border border-border/70 rounded-lg px-2.5 py-1.5 shadow-lg">
+                  {isFirstLoad
+                    ? <Loader2 size={11} className="text-blue-400 animate-spin" />
+                    : <Wifi size={11} className="text-blue-400 animate-pulse" />
+                  }
+                  <span className="text-[11px] text-muted-foreground font-mono">
+                    {isFirstLoad ? 'FETCHING' : 'SYNCING'}
+                  </span>
+                </div>
               )}
-            </AnimatePresence>
 
-            {isFetching && !isFirstLoad && (
               <div className="flex items-center gap-1.5 bg-card/85 backdrop-blur-md border border-border/70 rounded-lg px-2.5 py-1.5 shadow-lg">
-                <Wifi size={11} className="text-blue-400 animate-pulse" />
-                <span className="text-[11px] text-muted-foreground font-mono">SYNCING</span>
+                <MapPin size={11} className="text-muted-foreground" />
+                <span className="text-[11px] font-mono text-muted-foreground">
+                  {allIncidents.length} incidents · Kenya
+                </span>
               </div>
-            )}
 
-            <div className="flex items-center gap-1.5 bg-card/85 backdrop-blur-md border border-border/70 rounded-lg px-2.5 py-1.5 shadow-lg">
-              <MapPin size={11} className="text-muted-foreground" />
-              <span className="text-[11px] font-mono text-muted-foreground">
-                {allIncidents.length} incidents · Kenya
-              </span>
+              {/* Report incident button */}
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => setIsReportOpen(true)}
+                className="flex items-center gap-2 bg-red-600 hover:bg-red-500 text-white text-xs font-bold rounded-xl px-3 py-2 shadow-lg transition-colors ml-2"
+                aria-label="Report incident"
+              >
+                <Plus size={14} />
+                Report incident
+              </motion.button>
             </div>
           </div>
         </div>
@@ -164,17 +156,7 @@ export function MapPage() {
         onClose={() => setSelectedIncident(null)}
       />
 
-      {/* ── Report incident FAB ──────────────────────────────────────────── */}
-      <motion.button
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
-        onClick={() => setIsReportOpen(true)}
-        className="absolute bottom-6 right-4 z-[780] flex items-center gap-2 bg-red-600 hover:bg-red-500 text-white text-sm font-bold rounded-2xl px-4 py-3 shadow-2xl transition-colors"
-        aria-label="Report an incident"
-      >
-        <Plus size={16} />
-        Report
-      </motion.button>
+
 
       {/* ── Report modal ─────────────────────────────────────────────────── */}
       <ReportModal

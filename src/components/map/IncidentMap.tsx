@@ -10,7 +10,7 @@ import { PingLayer } from './PingLayer'
 import { MapController } from './MapController'
 import { MapLegend } from './MapLegend'
 
-const NAIROBI: [number, number] = [-1.286389, 36.817223]
+const EAST_AFRICA: [number, number] = [-0.5, 36.5]
 
 interface IncidentMapProps {
   incidents: Incident[]
@@ -157,8 +157,8 @@ export function IncidentMap({
       </AnimatePresence>
 
       <MapContainer
-        center={NAIROBI}
-        zoom={12}
+        center={EAST_AFRICA}
+        zoom={6}
         minZoom={5}
         maxZoom={19}
         style={{ height: '100%', width: '100%' }}
@@ -195,8 +195,8 @@ export function IncidentMap({
         {/* Ripple animation for newly detected incidents */}
         <PingLayer incidents={allIncidents} newIncidentIds={newIncidentIds} />
 
-        {/* Programmatic pan/zoom from sidebar clicks */}
-        <MapController target={mapTarget} />
+        {/* Programmatic pan/zoom from sidebar clicks + first-load fit */}
+        <MapController target={mapTarget} incidents={allIncidents} />
 
         {/* Location picker for report modal */}
         {isPickingLocation && onLocationPicked && (
