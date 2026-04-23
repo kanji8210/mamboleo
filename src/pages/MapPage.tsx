@@ -5,6 +5,7 @@ import { Menu, MapPin, RefreshCw, Wifi, WifiOff, ArrowLeft, Plus, Loader2 } from
 import { motion, AnimatePresence } from 'framer-motion'
 
 import { IncidentMap } from '@/components/map/IncidentMap'
+import { LiveIndicator } from '@/components/map/LiveIndicator'
 import { Sidebar } from '@/components/sidebar/Sidebar'
 import { IncidentPanel } from '@/components/incident/IncidentPanel'
 import { ReportModal } from '@/components/report/ReportModal'
@@ -17,6 +18,21 @@ export function MapPage() {
   const [newIncidentIds, setNewIncidentIds] = useState<Set<string>>(new Set())
   const [mapTarget, setMapTarget] = useState<[number, number] | null>(null)
   const [selectedIncident, setSelectedIncident] = useState<Incident | null>(null)
+  const [isReportOpen, setIsReportOpen] = useState(false);
+
+  // Fetch incidents data
+  const {
+    incidents = [],
+    allIncidents = [],
+    isLoading = false,
+    isError = false,
+    refetch = () => {},
+    handleIncidentClick = () => {},
+  } = useIncidents({ filter });
+
+  // LiveIndicator import (assume it's default or named)
+  // import { LiveIndicator } from '@/components/map/LiveIndicator';
+
   return (
     <div className="fixed inset-0 bg-background overflow-hidden flex flex-col">
       {/* Mobile top bar */}
@@ -87,35 +103,5 @@ export function MapPage() {
       {/* Toast notifications */}
       <Toaster position="top-center" richColors closeButton />
     </div>
-        onClose={() => setIsReportOpen(false)}
-        onSubmitSuccess={() => void refetch()}
-      />
-
-      {/* ── Collapsible sidebar ──────────────────────────────────────────── */}
-      <Sidebar
-        isOpen={sidebarOpen}
-        onClose={() => setSidebarOpen(false)}
-        incidents={incidents}
-        allIncidents={allIncidents}
-        filter={filter}
-        onFilterChange={setFilter}
-        newIncidentIds={newIncidentIds}
-        onIncidentClick={handleIncidentClick}
-      />
-
-      {/* ── Toasts ───────────────────────────────────────────────────────── */}
-      <Toaster
-        position="top-right"
-        theme="dark"
-        toastOptions={{
-          style: {
-            background: 'hsl(224 16% 9%)',
-            border: '1px solid hsl(224 14% 17%)',
-            color: 'hsl(210 20% 94%)',
-            fontSize: '13px',
-          },
-        }}
-      />
-    </div>
-  )
+  );
 }
