@@ -1,7 +1,6 @@
-import { useState, useCallback, useEffect } from 'react'
-import { Link } from 'react-router-dom'
+import { useState, useCallback } from 'react'
 import { Toaster } from 'sonner'
-import { Menu, MapPin, RefreshCw, Wifi, WifiOff, ArrowLeft, Plus, Loader2 } from 'lucide-react'
+import { MapPin, RefreshCw, Wifi, WifiOff, ArrowLeft, Plus, Loader2 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 
 import { IncidentMap } from '@/components/map/IncidentMap'
@@ -11,6 +10,8 @@ import { IncidentPanel } from '@/components/incident/IncidentPanel'
 import { ReportModal } from '@/components/report/ReportModal'
 import { useIncidents } from '@/hooks/useIncidents'
 import { useWeatherAlerts } from '@/hooks/useWeatherAlerts'
+import { useAdvisories } from '@/hooks/useAdvisories'
+import { AdvisoryBanner } from '@/components/advisory/AdvisoryBanner'
 import { recordIncidentView } from '@/lib/reportApi'
 import type { Incident, FilterOption } from '@/types/incident'
 
@@ -48,6 +49,12 @@ export function MapPage() {
 
   // Fetch official weather warnings from Open-Meteo and merge them in.
   const { data: weatherAlerts = [] } = useWeatherAlerts()
+
+  // Fetch embassy / government travel advisories (UK FCDO, US State Dept,
+  // France MAE, Canada Global Affairs, Australia Smartraveller). Shown in
+  // a collapsible banner above the map — not merged into the incident
+  // stream because they have no lat/long.
+  const { data: advisories = [] } = useAdvisories()
 
   // Merge user reports + official alerts into a single stream.
   // Official alerts come first so they take precedence when IDs collide.
@@ -92,6 +99,8 @@ export function MapPage() {
             <span className="inline-block align-middle"><LiveIndicator /></span>
           </div>
         </div>
+        {/* Embassy travel advisories — auto-loaded, collapsible */}
+        <AdvisoryBanner advisories={advisories} />
       </div>
 
       {/* Map and overlays */}

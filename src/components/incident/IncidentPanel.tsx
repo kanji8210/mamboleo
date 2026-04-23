@@ -80,7 +80,6 @@ export function IncidentPanel({ incident, onClose }: IncidentPanelProps) {
   // Sync state when incident changes
   const effectiveCount = localCount ?? (incident?.incidentFields.corroborationCount ?? 0)
   const alreadyDone = incident ? hasCorroborated(incident.id) : false
-  const canCorroborate = incident && !alreadyDone && !corroborated
 
   async function handleCorroborate() {
     if (!incident || corroborating) return
