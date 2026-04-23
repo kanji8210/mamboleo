@@ -1,7 +1,6 @@
 import { useState, useCallback } from 'react'
 import { Toaster } from 'sonner'
-import { MapPin, RefreshCw, Wifi, WifiOff, ArrowLeft, Plus, Loader2 } from 'lucide-react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { Plus } from 'lucide-react'
 
 import { IncidentMap } from '@/components/map/IncidentMap'
 import { LiveIndicator } from '@/components/map/LiveIndicator'
