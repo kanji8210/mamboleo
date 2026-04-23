@@ -1,4 +1,5 @@
 import { useCallback, useRef, useState } from 'react'
+import { VisuallyHidden } from '../ui/VisuallyHidden'
 import * as Dialog from '@radix-ui/react-dialog'
 import { motion, AnimatePresence } from 'framer-motion'
 import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet'
@@ -11,6 +12,7 @@ import {
 import type { IncidentType, IncidentStatus } from '@/types/incident'
 import { INCIDENT_LABELS, STATUS_LABELS } from '@/types/incident'
 import { submitReport, type ReportPayload } from '@/lib/reportApi'
+import { COUNTIES } from '@/lib/counties'
 
 // ─── Constants ────────────────────────────────────────────────────────────
 
@@ -38,11 +40,14 @@ const TITLE_MIN = 5
 
 // ─── Types ────────────────────────────────────────────────────────────────
 
+
 interface FormState {
   isAnonymous: boolean
   reporterName: string
   incidentType: IncidentType | null
   status: IncidentStatus
+  county: string | null
+  subcounty: string | null
   lat: number | null
   lng: number | null
   title: string
@@ -56,6 +61,8 @@ const defaultForm = (): FormState => ({
   reporterName: '',
   incidentType: null,
   status: 'unsafe',
+  county: null,
+  subcounty: null,
   lat: null,
   lng: null,
   title: '',
@@ -263,15 +270,62 @@ function StepWhere({
 
 function StepDetails({ form, onChange }: { form: FormState; onChange: (p: Partial<FormState>) => void }) {
   const titleLen = form.title.length
+  // Find selected county object
+  const selectedCounty = COUNTIES.find(c => c.name === form.county)
+  const subcounties = selectedCounty ? selectedCounty.subcounties : []
   return (
     <div className="space-y-4">
+      {/* County selection */}
+      <div>
+        <label className="text-xs font-medium text-muted-foreground block mb-1.5">County</label>
+        <select
+          className="w-full bg-input border border-border rounded-xl px-4 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-red-500/40"
+          value={form.county || ''}
+          onChange={e => {
+            const county = e.target.value || null
+            onChange({ county, subcounty: null })
+          }}
+        >
+          <option value="">Select county…</option>
+          {COUNTIES.map(c => (
+            <option key={c.name} value={c.name}>{c.name}</option>
+          ))}
+        </select>
+      </div>
+      {/* Subcounty selection */}
+      <div>
+        <label className="text-xs font-medium text-muted-foreground block mb-1.5">Subcounty</label>
+        <select
+          className="w-full bg-input border border-border rounded-xl px-4 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-red-500/40"
+          value={form.subcounty || ''}
+          onChange={e => {
+            const subcounty = e.target.value || null
+            // Center map if subcounty has center
+            if (selectedCounty) {
+              const sub = selectedCounty.subcounties.find(s => s.name === subcounty)
+              if (sub && sub.center) {
+                onChange({ subcounty, lat: sub.center[0], lng: sub.center[1] })
+                return
+              }
+            }
+            onChange({ subcounty })
+          }}
+          disabled={!form.county}
+        >
+          <option value="">Select subcounty…</option>
+          {subcounties.map(s => (
+            <option key={s.name} value={s.name}>{s.name}</option>
+          ))}
+        </select>
+      </div>
+      {/* Title */}
       <div>
         <label className="text-xs font-medium text-muted-foreground block mb-1.5">
           Title <span className="text-red-400">*</span>
         </label>
         <input
           type="text"
-          placeholder="e.g. Demonstrators burn police car in Mulolongo"
+          placeholder="e.g. Fire at Kenyatta Market, Kibra"
           value={form.title}
           onChange={e => onChange({ title: e.target.value })}
           maxLength={TITLE_MAX}
@@ -284,7 +338,7 @@ function StepDetails({ form, onChange }: { form: FormState; onChange: (p: Partia
           <span className="ml-auto text-[10px] text-muted-foreground/50 font-mono">{titleLen}/{TITLE_MAX}</span>
         </div>
       </div>
-
+      {/* When did this happen */}
       <div>
         <label className="text-xs font-medium text-muted-foreground block mb-1.5">
           When did this happen?
@@ -296,13 +350,13 @@ function StepDetails({ form, onChange }: { form: FormState; onChange: (p: Partia
           className="w-full bg-input border border-border rounded-xl px-4 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-red-500/40"
         />
       </div>
-
+      {/* Description */}
       <div>
         <label className="text-xs font-medium text-muted-foreground block mb-1.5">
           Description <span className="text-muted-foreground/50 text-[10px]">(optional)</span>
         </label>
         <textarea
-          placeholder="Any additional details…"
+          placeholder="e.g. Large fire broke out at Kenyatta Market stalls. Heavy smoke visible, emergency services on site."
           value={form.description}
           onChange={e => onChange({ description: e.target.value })}
           rows={4}
@@ -506,14 +560,21 @@ export function ReportModal({ isOpen, onClose, onSubmitSuccess }: ReportModalPro
           aria-labelledby="report-modal-title"
         >
           {/* Header */}
-          <div className="flex items-center justify-between px-5 py-4 border-b border-border">
-            <Dialog.Title id="report-modal-title" className="text-base font-bold text-foreground">
-              Report Incident
-            </Dialog.Title>
-            <Dialog.Close className="w-7 h-7 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-accent transition-colors">
-              <X size={15} />
-            </Dialog.Close>
-          </div>
+          {/* Always render Dialog.Title for accessibility, visually hide when done */}
+          {done ? (
+            <VisuallyHidden>
+              <Dialog.Title id="report-modal-title">Report Incident</Dialog.Title>
+            </VisuallyHidden>
+          ) : (
+            <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+              <Dialog.Title id="report-modal-title" className="text-base font-bold text-foreground">
+                Report Incident
+              </Dialog.Title>
+              <Dialog.Close className="w-7 h-7 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-accent transition-colors">
+                <X size={15} />
+              </Dialog.Close>
+            </div>
+          )}
 
           {/* Progress dots */}
           {!done && (
