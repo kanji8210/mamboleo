@@ -28,7 +28,7 @@ export function MapLegend() {
   const [open, setOpen] = useState(true)
 
   return (
-    <div className="absolute bottom-6 right-3 z-[700] pointer-events-auto">
+    <div className="fixed md:absolute bottom-20 md:bottom-6 right-2 md:right-3 z-[700] pointer-events-auto max-w-[90vw] md:max-w-xs">
       <div className="bg-card/90 backdrop-blur-md border border-border/80 rounded-xl shadow-2xl overflow-hidden">
 
         {/* Toggle header */}
