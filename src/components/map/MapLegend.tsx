@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ChevronDown, ChevronUp } from 'lucide-react'
-import { INCIDENT_COLORS, INCIDENT_LABELS } from '@/types/incident'
+import { ChevronDown, ChevronUp, Check } from 'lucide-react'
+import { INCIDENT_COLORS, INCIDENT_LABELS, type FilterOption, type IncidentType } from '@/types/incident'
 
 const TYPE_ITEMS = [
   { type: 'fire',     label: INCIDENT_LABELS.fire,     color: INCIDENT_COLORS.fire },
@@ -24,8 +24,20 @@ const TYPE_SVG: Record<string, { d: string; stroke: boolean }> = {
   weather:  { d: 'M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242M16 14v6M8 14v6M12 16v6', stroke: true },
 }
 
-export function MapLegend() {
+interface MapLegendProps {
+  filter?: FilterOption
+  onFilterChange?: (f: FilterOption) => void
+}
+
+export function MapLegend({ filter = 'all', onFilterChange }: MapLegendProps) {
   const [open, setOpen] = useState(true)
+
+  // The legend doubles as a quick filter: tap a type to show only that
+  // category; tap the active one again to reset to "all".
+  const handleTypeClick = (type: IncidentType) => {
+    if (!onFilterChange) return
+    onFilterChange(filter === type ? 'all' : type)
+  }
 
   return (
     <div className="fixed md:absolute bottom-20 md:bottom-6 right-2 md:right-3 z-[700] pointer-events-auto max-w-[90vw] md:max-w-xs">
@@ -55,15 +67,47 @@ export function MapLegend() {
             >
               <div className="px-3 pb-3 flex flex-col gap-3">
 
-                {/* Incident types */}
-                <div className="flex flex-col gap-1.5">
+                {/* Incident types — clickable filters */}
+                <div className="flex flex-col gap-1">
+                  {onFilterChange && (
+                    <button
+                      onClick={() => onFilterChange('all')}
+                      className={[
+                        'flex items-center gap-2 px-1.5 py-1 rounded-md transition-colors text-left',
+                        filter === 'all'
+                          ? 'bg-white/10 text-foreground'
+                          : 'text-muted-foreground hover:bg-white/5 hover:text-foreground',
+                      ].join(' ')}
+                      aria-pressed={filter === 'all'}
+                    >
+                      <div className="w-6 h-6 rounded-full border border-white/20 bg-gradient-to-br from-white/20 to-white/5 flex-shrink-0" />
+                      <span className="text-[11px] font-medium">All incidents</span>
+                      {filter === 'all' && <Check size={11} className="ml-auto text-muted-foreground" />}
+                    </button>
+                  )}
                   {TYPE_ITEMS.map(({ type, label, color }) => {
                     const { d, stroke } = TYPE_SVG[type]
                     const svg = stroke
                       ? `<path d="${d}"/>`
                       : `<path d="${d}" fill="white"/>`
+                    const isActive = filter === type
+                    const isDimmed = onFilterChange && filter !== 'all' && !isActive
+                    const Tag = onFilterChange ? 'button' : 'div'
                     return (
-                      <div key={type} className="flex items-center gap-2">
+                      <Tag
+                        key={type}
+                        onClick={onFilterChange ? () => handleTypeClick(type) : undefined}
+                        aria-pressed={onFilterChange ? isActive : undefined}
+                        className={[
+                          'flex items-center gap-2 px-1.5 py-1 rounded-md transition-all text-left',
+                          onFilterChange
+                            ? isActive
+                              ? 'bg-white/10 text-foreground'
+                              : 'text-muted-foreground hover:bg-white/5 hover:text-foreground'
+                            : '',
+                          isDimmed ? 'opacity-40' : '',
+                        ].join(' ')}
+                      >
                         <div
                           className="w-6 h-6 rounded-full flex items-center justify-center border border-white/20 flex-shrink-0"
                           style={{ background: color }}
@@ -73,8 +117,9 @@ export function MapLegend() {
                               : `<svg viewBox="0 0 24 24" width="12" height="12">${svg}</svg>`,
                           }}
                         />
-                        <span className="text-[11px] text-muted-foreground">{label}</span>
-                      </div>
+                        <span className="text-[11px]">{label}</span>
+                        {isActive && <Check size={11} className="ml-auto text-muted-foreground" />}
+                      </Tag>
                     )
                   })}
                 </div>

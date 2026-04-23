@@ -17,6 +17,10 @@ export interface IncidentFields {
   isAnonymous: boolean
   isVerified: boolean
   corroborationCount: number
+  /** External URL for more information (official source, article, etc.) */
+  sourceUrl?: string | null
+  /** Human label for the external source, shown next to the link */
+  sourceName?: string | null
 }
 
 export interface Incident {

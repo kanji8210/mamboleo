@@ -1,0 +1,24 @@
+{
+  "folders": [
+    {
+      "name": "mamboleo (frontend · this worktree)",
+      "path": "."
+    },
+    {
+      "name": "mamboleoBack (backend)",
+      "path": "../../mamboleoBack"
+    }
+  ],
+  "settings": {
+    "files.exclude": {
+      "**/node_modules": true,
+      "**/dist": true,
+      "**/.turbo": true
+    },
+    "search.exclude": {
+      "**/node_modules": true,
+      "**/dist": true,
+      "**/package-lock.json": true
+    }
+  }
+}

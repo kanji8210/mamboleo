@@ -63,13 +63,16 @@ function mamboleo_shortcode(): string {
 // corroboration. The list of session IDs that confirmed a given incident is
 // stored in post meta `_mamboleo_corroborators`.
 
-add_action( 'rest_api_init', 'mamboleo_register_rest_routes' );
-function mamboleo_register_rest_routes(): void {
+// Register our frontend REST routes AFTER mamboleoBack (priority 10) so our
+// richer, session-aware handlers override the older ones. The 4th arg
+// `$override = true` makes register_rest_route replace an existing route.
+add_action( 'rest_api_init', 'mamboleo_front_register_rest_routes', 20 );
+function mamboleo_front_register_rest_routes(): void {
     register_rest_route( 'mamboleo/v1', '/report', [
         'methods'             => 'POST',
         'callback'            => 'mamboleo_rest_submit_report',
         'permission_callback' => '__return_true',
-    ] );
+    ], true );
 
     register_rest_route( 'mamboleo/v1', '/corroborate/(?P<id>\d+)', [
         'methods'             => 'POST',
@@ -80,7 +83,7 @@ function mamboleo_register_rest_routes(): void {
                 'validate_callback' => static fn( $v ) => is_numeric( $v ),
             ],
         ],
-    ] );
+    ], true );
 
     register_rest_route( 'mamboleo/v1', '/view/(?P<id>\d+)', [
         'methods'             => 'POST',
@@ -91,7 +94,7 @@ function mamboleo_register_rest_routes(): void {
                 'validate_callback' => static fn( $v ) => is_numeric( $v ),
             ],
         ],
-    ] );
+    ], true );
 }
 
 function mamboleo_start_session(): string {
@@ -301,32 +304,9 @@ function mamboleo_rest_toggle_corroboration( WP_REST_Request $request ) {
         return new WP_Error( 'mamboleo_no_identity', 'Could not identify user.', [ 'status' => 500 ] );
     }
 
-    // ── Anti-spam: per-user, per-incident cooldown ──────────────────────
-    //
-    // A user can confirm/unconfirm the same incident at most once every
-    // MAMBOLEO_CORROBORATE_COOLDOWN seconds (default 30s). The cooldown
-    // is tracked in the PHP session and in a transient keyed by the
-    // hashed IP, so a cookie wipe doesn't reset it and raw IPs are never
-    // written to the database.
-    $cooldown = defined( 'MAMBOLEO_CORROBORATE_COOLDOWN' )
-        ? (int) MAMBOLEO_CORROBORATE_COOLDOWN
-        : 30;
-
-    $session_key = "mamboleo_corr_last_{$post_id}";
-    $ip_key      = 'mamboleo_corr_' . substr( hash( 'sha256', $ip_hash . '|' . $post_id ), 0, 32 );
-
-    $last_session = (int) ( $_SESSION[ $session_key ] ?? 0 );
-    $last_ip      = $ip_hash !== '' ? (int) get_transient( $ip_key ) : 0;
-    $last         = max( $last_session, $last_ip );
-
-    if ( $last && ( time() - $last ) < $cooldown ) {
-        $retry = $cooldown - ( time() - $last );
-        return new WP_Error(
-            'mamboleo_cooldown',
-            sprintf( 'Please wait %d seconds before changing your confirmation again.', $retry ),
-            [ 'status' => 429, 'retry_after' => $retry ]
-        );
-    }
+    // No cooldown: the corroborator record itself dedupes by session OR
+    // hashed IP, so a user can only ever have one active confirmation per
+    // incident regardless of how many times they toggle it.
 
     // Corroborators are stored as structured records so we can match on
     // *either* the session id (same browser, cookie still valid) *or* the
@@ -392,12 +372,6 @@ function mamboleo_rest_toggle_corroboration( WP_REST_Request $request ) {
     }
     update_post_meta( $post_id, 'corroboration_count', $count );
 
-    // Record this toggle for cooldown on both axes.
-    $_SESSION[ $session_key ] = time();
-    if ( $ip_hash !== '' ) {
-        set_transient( $ip_key, time(), HOUR_IN_SECONDS );
-    }
-
     return rest_ensure_response( [
         'count'     => $count,
         'confirmed' => $confirmed,
@@ -451,22 +425,40 @@ function mamboleo_rest_record_view( WP_REST_Request $request ) {
 // PHP session cookie with fetch({ credentials: 'include' }). Safe in prod too:
 // only reflects the Origin header when it matches the site's home URL host or
 // when WP_DEBUG is on (dev).
-add_action( 'rest_api_init', function (): void {
-    remove_filter( 'rest_pre_serve_request', 'rest_send_cors_headers' );
-    add_filter( 'rest_pre_serve_request', 'mamboleo_rest_cors_headers', 15 );
-}, 15 );
-
-function mamboleo_rest_cors_headers( $value ) {
-    $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
-    if ( $origin !== '' ) {
-        $host_ok = parse_url( $origin, PHP_URL_HOST ) === parse_url( home_url(), PHP_URL_HOST );
-        if ( $host_ok || ( defined( 'WP_DEBUG' ) && WP_DEBUG ) ) {
-            header( 'Access-Control-Allow-Origin: ' . esc_url_raw( $origin ) );
-            header( 'Access-Control-Allow-Credentials: true' );
-            header( 'Vary: Origin' );
-            header( 'Access-Control-Allow-Methods: GET, POST, OPTIONS' );
-            header( 'Access-Control-Allow-Headers: Content-Type, X-WP-Nonce' );
-        }
+//
+// We send headers on the `init` hook for any /wp-json/mamboleo/* request, so
+// they are present even when a handler emits WP_Error (500) or when the
+// browser sends an OPTIONS preflight. Relying solely on the REST filter
+// `rest_pre_serve_request` misses those cases and produces the browser
+// error "CORS header Access-Control-Allow-Origin missing".
+add_action( 'init', 'mamboleo_send_cors_headers', 0 );
+function mamboleo_send_cors_headers(): void {
+    $uri = $_SERVER['REQUEST_URI'] ?? '';
+    if ( strpos( $uri, '/wp-json/mamboleo/' ) === false ) {
+        return;
     }
-    return $value;
+
+    $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
+    if ( $origin === '' ) {
+        return;
+    }
+
+    $host_ok = parse_url( $origin, PHP_URL_HOST ) === parse_url( home_url(), PHP_URL_HOST );
+    $is_dev  = defined( 'WP_DEBUG' ) && WP_DEBUG;
+    if ( ! $host_ok && ! $is_dev ) {
+        return;
+    }
+
+    header( 'Access-Control-Allow-Origin: ' . esc_url_raw( $origin ) );
+    header( 'Access-Control-Allow-Credentials: true' );
+    header( 'Vary: Origin' );
+    header( 'Access-Control-Allow-Methods: GET, POST, OPTIONS' );
+    header( 'Access-Control-Allow-Headers: Content-Type, X-WP-Nonce, Authorization' );
+    header( 'Access-Control-Max-Age: 600' );
+
+    // Short-circuit preflight so browsers don't wait on the full WP boot.
+    if ( ( $_SERVER['REQUEST_METHOD'] ?? '' ) === 'OPTIONS' ) {
+        status_header( 204 );
+        exit;
+    }
 }

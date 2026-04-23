@@ -10,6 +10,7 @@ import { Sidebar } from '@/components/sidebar/Sidebar'
 import { IncidentPanel } from '@/components/incident/IncidentPanel'
 import { ReportModal } from '@/components/report/ReportModal'
 import { useIncidents } from '@/hooks/useIncidents'
+import { useWeatherAlerts } from '@/hooks/useWeatherAlerts'
 import { recordIncidentView } from '@/lib/reportApi'
 import type { Incident, FilterOption } from '@/types/incident'
 
@@ -21,17 +22,15 @@ export function MapPage() {
   const [selectedIncident, setSelectedIncident] = useState<Incident | null>(null)
   const [isReportOpen, setIsReportOpen] = useState(false);
 
-  // Fetch incidents data
+  // Fetch user-submitted incidents from WPGraphQL
   const {
-    incidents = [],
-    allIncidents = [],
+    allIncidents: allUserIncidents = [],
     isLoading = false,
     isError = false,
     refetch = () => {},
   } = useIncidents({
     filter,
     onNewIncidents: (ids) => {
-      // Highlight freshly-appeared incidents (ping animation) for ~12s.
       setNewIncidentIds((prev) => {
         const next = new Set(prev)
         ids.forEach((id) => next.add(id))
@@ -46,6 +45,17 @@ export function MapPage() {
       }, 12_000)
     },
   });
+
+  // Fetch official weather warnings from Open-Meteo and merge them in.
+  const { data: weatherAlerts = [] } = useWeatherAlerts()
+
+  // Merge user reports + official alerts into a single stream.
+  // Official alerts come first so they take precedence when IDs collide.
+  const allIncidents: Incident[] = [...weatherAlerts, ...allUserIncidents]
+  const incidents: Incident[] =
+    filter === 'all'
+      ? allIncidents
+      : allIncidents.filter((i) => i.incidentFields.type === filter)
 
   // Opening an incident = (1) select it to show the panel, (2) pan the map
   // to it, (3) fire-and-forget a view record on the server.
@@ -97,6 +107,8 @@ export function MapPage() {
           onIncidentClick={handleIncidentClick}
           isPickingLocation={isReportOpen}
           onLocationPicked={(lat, lng) => setMapTarget([lat, lng])}
+          filter={filter}
+          onFilterChange={setFilter}
         />
       </div>
 

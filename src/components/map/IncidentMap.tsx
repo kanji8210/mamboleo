@@ -3,7 +3,7 @@ import MarkerClusterGroup from 'react-leaflet-cluster'
 import L from 'leaflet'
 import { motion, AnimatePresence } from 'framer-motion'
 import { AlertTriangle, MapPin, RefreshCw, WifiOff, Crosshair } from 'lucide-react'
-import type { Incident } from '@/types/incident'
+import type { Incident, FilterOption } from '@/types/incident'
 import { IncidentMarker } from './IncidentMarker'
 import { LiveIndicator } from './LiveIndicator'
 import { PingLayer } from './PingLayer'
@@ -23,6 +23,8 @@ interface IncidentMapProps {
   onIncidentClick?: (incident: Incident) => void
   isPickingLocation?: boolean
   onLocationPicked?: (lat: number, lng: number) => void
+  filter?: FilterOption
+  onFilterChange?: (f: FilterOption) => void
 }
 
 function LocationPickerLayer({
@@ -74,6 +76,8 @@ export function IncidentMap({
   onIncidentClick,
   isPickingLocation = false,
   onLocationPicked,
+  filter,
+  onFilterChange,
 }: IncidentMapProps) {
   const isDoneEmpty = !isLoading && !isError && allIncidents.length === 0
 
@@ -82,8 +86,8 @@ export function IncidentMap({
       {/* LIVE badge — overlaid above the map */}
       <LiveIndicator />
 
-      {/* Map legend */}
-      <MapLegend />
+      {/* Map legend — doubles as a quick filter */}
+      <MapLegend filter={filter} onFilterChange={onFilterChange} />
 
       {/* Pick-location strip */}
       <AnimatePresence>
