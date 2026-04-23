@@ -19,6 +19,8 @@ import {
   CloudRain,
 } from 'lucide-react'
 
+import { LiveDataSection } from '@/components/landing/LiveDataSection'
+
 // ─── Animated counter ─────────────────────────────────────────────────────
 
 function AnimatedNumber({ value, suffix = '' }: { value: number; suffix?: string }) {
@@ -312,6 +314,11 @@ export function LandingPage() {
           </Link>
         </motion.div>
       </section>
+
+      {/* ══════════════════════════════════════════════════════════════════
+          LIVE DATA  — real numbers from the running platform
+      ══════════════════════════════════════════════════════════════════ */}
+      <LiveDataSection />
 
       {/* ══════════════════════════════════════════════════════════════════
           STATS STRIP

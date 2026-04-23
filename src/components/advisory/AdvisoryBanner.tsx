@@ -11,6 +11,10 @@ const SOURCE_FLAGS: Record<string, string> = {
   'France MAE': '🇫🇷',
   'Canada Global Affairs': '🇨🇦',
   'Australia Smartraveller': '🇦🇺',
+  'Germany Auswärtiges Amt': '🇩🇪',
+  'Japan MOFA': '🇯🇵',
+  'Ireland DFA': '🇮🇪',
+  'New Zealand SafeTravel': '🇳🇿',
 }
 
 interface AdvisoryBannerProps {

@@ -20,6 +20,10 @@ export const EMBASSY_SOURCES = [
   'France MAE',
   'Canada Global Affairs',
   'Australia Smartraveller',
+  'Germany Auswärtiges Amt',
+  'Japan MOFA',
+  'Ireland DFA',
+  'New Zealand SafeTravel',
 ] as const
 
 export type EmbassySource = (typeof EMBASSY_SOURCES)[number]
