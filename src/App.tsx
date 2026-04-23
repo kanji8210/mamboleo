@@ -5,6 +5,7 @@ import { Header } from '@/components/layout/Header'
 import { Footer } from '@/components/layout/Footer'
 import { LandingPage } from '@/pages/LandingPage'
 import { MapPage } from '@/pages/MapPage'
+import { MediaPage } from '@/pages/MediaPage'
 
 // ─── QueryClient (singleton outside component) ────────────────────────────
 
@@ -29,6 +30,7 @@ function AppShell() {
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/map" element={<MapPage />} />
+        <Route path="/media" element={<MediaPage />} />
       </Routes>
       {!isMapPage && <Footer />}
     </>

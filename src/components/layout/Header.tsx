@@ -6,6 +6,7 @@ import { Menu, X, Map, Radio, ChevronRight, Newspaper, BarChart2, Wifi } from 'l
 const NAV_LINKS = [
   { to: '/', label: 'Home', exact: true },
   { to: '/map', label: 'Live Map' },
+  { to: '/media', label: 'Media Monitor' },
   { to: '#features', label: 'Features', anchor: true },
   { to: '#about', label: 'About', anchor: true },
 ]
