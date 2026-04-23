@@ -10,6 +10,7 @@ import { Sidebar } from '@/components/sidebar/Sidebar'
 import { IncidentPanel } from '@/components/incident/IncidentPanel'
 import { ReportModal } from '@/components/report/ReportModal'
 import { useIncidents } from '@/hooks/useIncidents'
+import { recordIncidentView } from '@/lib/reportApi'
 import type { Incident, FilterOption } from '@/types/incident'
 
 export function MapPage() {
@@ -27,8 +28,32 @@ export function MapPage() {
     isLoading = false,
     isError = false,
     refetch = () => {},
-    handleIncidentClick = () => {},
-  } = useIncidents({ filter });
+  } = useIncidents({
+    filter,
+    onNewIncidents: (ids) => {
+      // Highlight freshly-appeared incidents (ping animation) for ~12s.
+      setNewIncidentIds((prev) => {
+        const next = new Set(prev)
+        ids.forEach((id) => next.add(id))
+        return next
+      })
+      setTimeout(() => {
+        setNewIncidentIds((prev) => {
+          const next = new Set(prev)
+          ids.forEach((id) => next.delete(id))
+          return next
+        })
+      }, 12_000)
+    },
+  });
+
+  // Opening an incident = (1) select it to show the panel, (2) pan the map
+  // to it, (3) fire-and-forget a view record on the server.
+  const handleIncidentClick = useCallback((incident: Incident) => {
+    setSelectedIncident(incident)
+    setMapTarget([incident.incidentFields.latitude, incident.incidentFields.longitude])
+    void recordIncidentView(incident.id)
+  }, [])
 
   // LiveIndicator import (assume it's default or named)
   // import { LiveIndicator } from '@/components/map/LiveIndicator';
@@ -97,7 +122,13 @@ export function MapPage() {
       <ReportModal
         isOpen={isReportOpen}
         onClose={() => setIsReportOpen(false)}
-        onSubmitSuccess={() => setIsReportOpen(false)}
+        onSubmitSuccess={() => {
+          setIsReportOpen(false)
+          // Refresh the incident list immediately so the user sees their
+          // newly-submitted report appear on the map without waiting for
+          // the next 30s polling tick.
+          void refetch()
+        }}
       />
 
       {/* Toast notifications */}

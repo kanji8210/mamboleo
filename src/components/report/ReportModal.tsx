@@ -38,12 +38,25 @@ const STATUSES: { value: IncidentStatus; Icon: React.ElementType; label: string;
 const TITLE_MAX = 200
 const TITLE_MIN = 5
 
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+// Kenya: allow +254XXXXXXXXX or 07XXXXXXXX / 01XXXXXXXX. Accept 8-15 digits generally.
+const PHONE_RE = /^[+\d][\d\s\-()]{7,20}$/
+
+function isValidEmail(s: string): boolean {
+  return EMAIL_RE.test(s.trim())
+}
+function isValidPhone(s: string): boolean {
+  return PHONE_RE.test(s.trim())
+}
+
 // ─── Types ────────────────────────────────────────────────────────────────
 
 
 interface FormState {
   isAnonymous: boolean
   reporterName: string
+  reporterPhone: string
+  reporterEmail: string
   incidentType: IncidentType | null
   status: IncidentStatus
   county: string | null
@@ -59,6 +72,8 @@ interface FormState {
 const defaultForm = (): FormState => ({
   isAnonymous: true,
   reporterName: '',
+  reporterPhone: '',
+  reporterEmail: '',
   incidentType: null,
   status: 'unsafe',
   county: null,
@@ -128,19 +143,54 @@ function StepIdentity({ form, onChange }: { form: FormState; onChange: (p: Parti
             transition={{ duration: 0.2 }}
             className="overflow-hidden"
           >
-            <div className="pt-2">
-              <label className="text-xs font-medium text-muted-foreground block mb-1.5">
-                Your name
-              </label>
-              <input
-                type="text"
-                placeholder="Full name or alias"
-                value={form.reporterName}
-                onChange={e => onChange({ reporterName: e.target.value })}
-                maxLength={80}
-                autoComplete="name"
-                className="w-full bg-input border border-border rounded-xl px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-red-500/40"
-              />
+            <div className="pt-2 space-y-3">
+              <div>
+                <label className="text-xs font-medium text-muted-foreground block mb-1.5">
+                  Your name <span className="text-red-400">*</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder="Full name or alias"
+                  value={form.reporterName}
+                  onChange={e => onChange({ reporterName: e.target.value })}
+                  maxLength={80}
+                  autoComplete="name"
+                  className="w-full bg-input border border-border rounded-xl px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-red-500/40"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground block mb-1.5">
+                  Phone <span className="text-red-400">*</span>
+                </label>
+                <input
+                  type="tel"
+                  inputMode="tel"
+                  placeholder="+254 7XX XXX XXX"
+                  value={form.reporterPhone}
+                  onChange={e => onChange({ reporterPhone: e.target.value })}
+                  maxLength={32}
+                  autoComplete="tel"
+                  className="w-full bg-input border border-border rounded-xl px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-red-500/40"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground block mb-1.5">
+                  Email <span className="text-red-400">*</span>
+                </label>
+                <input
+                  type="email"
+                  inputMode="email"
+                  placeholder="you@example.com"
+                  value={form.reporterEmail}
+                  onChange={e => onChange({ reporterEmail: e.target.value })}
+                  maxLength={120}
+                  autoComplete="email"
+                  className="w-full bg-input border border-border rounded-xl px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-red-500/40"
+                />
+              </div>
+              <p className="text-[10px] text-muted-foreground/60 leading-snug">
+                Contact details are kept private and used only by moderators to verify the report.
+              </p>
             </div>
           </motion.div>
         )}
@@ -406,6 +456,8 @@ function StepReview({ form }: { form: FormState }) {
     <div className="space-y-4">
       <div className="bg-muted/20 border border-border rounded-xl p-4 space-y-2.5 text-sm">
         <Row label="Identity" value={form.isAnonymous ? 'Anonymous' : (form.reporterName || '—')} />
+        {!form.isAnonymous && form.reporterPhone && <Row label="Phone" value={form.reporterPhone} />}
+        {!form.isAnonymous && form.reporterEmail && <Row label="Email" value={form.reporterEmail} />}
         {typeInfo && <Row label="Type" value={typeInfo.label} />}
         {statusInfo && <Row label="Status" value={statusInfo.label} />}
         <Row
@@ -476,7 +528,13 @@ const STEP_TITLES = ['Identity', 'What', 'Where', 'Details', 'Media', 'Review']
 
 function canAdvance(step: number, form: FormState): boolean {
   switch (step) {
-    case 1: return form.isAnonymous || form.reporterName.trim().length > 0
+    case 1:
+      if (form.isAnonymous) return true
+      return (
+        form.reporterName.trim().length > 0 &&
+        isValidPhone(form.reporterPhone) &&
+        isValidEmail(form.reporterEmail)
+      )
     case 2: return form.incidentType !== null
     case 3: return form.lat !== null && form.lng !== null
     case 4: return form.title.trim().length >= TITLE_MIN
@@ -536,6 +594,8 @@ export function ReportModal({ isOpen, onClose, onSubmitSuccess }: ReportModalPro
         videoUrl: form.videoUrl.trim() || undefined,
         isAnonymous: form.isAnonymous,
         reporterName: form.isAnonymous ? undefined : form.reporterName.trim() || undefined,
+        reporterPhone: form.isAnonymous ? undefined : form.reporterPhone.trim() || undefined,
+        reporterEmail: form.isAnonymous ? undefined : form.reporterEmail.trim() || undefined,
       }
       await submitReport(payload)
       setDone(true)
@@ -609,7 +669,7 @@ export function ReportModal({ isOpen, onClose, onSubmitSuccess }: ReportModalPro
                 </div>
                 <p className="text-base font-bold text-foreground">Report submitted</p>
                 <p className="text-sm text-muted-foreground max-w-xs">
-                  Thank you. Your report is pending review and will appear on the map once verified.
+                  Thank you. Your report is now live on the map, marked as unconfirmed until verified by moderators or other users.
                 </p>
               </div>
             ) : (

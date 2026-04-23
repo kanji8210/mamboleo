@@ -12,7 +12,7 @@ import {
   SEVERITY_COLORS, SEVERITY_BG,
   STATUS_LABELS, STATUS_COLORS, STATUS_BG,
 } from '@/types/incident'
-import { corroborateIncident, hasCorroborated, markCorroborated } from '@/lib/reportApi'
+import { corroborateIncident, hasCorroborated, markCorroborated, unmarkCorroborated } from '@/lib/reportApi'
 import { stripHtml } from '@/lib/utils'
 
 // ─── Contextual guidance per type ────────────────────────────────────────
@@ -82,18 +82,21 @@ export function IncidentPanel({ incident, onClose }: IncidentPanelProps) {
   const canCorroborate = incident && !alreadyDone && !corroborated
 
   async function handleCorroborate() {
-    if (!incident || !canCorroborate) return
+    if (!incident || corroborating) return
     setCorroborating(true)
     try {
-      const { count } = await corroborateIncident(incident.id)
-      markCorroborated(incident.id)
+      const { count, confirmed } = await corroborateIncident(incident.id)
       setLocalCount(count)
-      setCorroborated(true)
+      setCorroborated(confirmed)
+      if (confirmed) markCorroborated(incident.id)
+      else unmarkCorroborated(incident.id)
     } catch {
-      // silent fail — don't block the user
-      setLocalCount(effectiveCount + 1)
-      markCorroborated(incident.id)
-      setCorroborated(true)
+      // silent fail — optimistic local toggle
+      const next = !(corroborated || alreadyDone)
+      setLocalCount(effectiveCount + (next ? 1 : -1))
+      setCorroborated(next)
+      if (next) markCorroborated(incident.id)
+      else unmarkCorroborated(incident.id)
     } finally {
       setCorroborating(false)
     }
@@ -135,8 +138,7 @@ export function IncidentPanel({ incident, onClose }: IncidentPanelProps) {
               incident={incident}
               onClose={onClose}
               effectiveCount={effectiveCount}
-              canCorroborate={!!canCorroborate}
-              alreadyDone={alreadyDone || corroborated}
+              isConfirmed={alreadyDone || corroborated}
               corroborating={corroborating}
               onCorroborate={handleCorroborate}
             />
@@ -153,16 +155,14 @@ function PanelContent({
   incident,
   onClose,
   effectiveCount,
-  canCorroborate,
-  alreadyDone,
+  isConfirmed,
   corroborating,
   onCorroborate,
 }: {
   incident: Incident
   onClose: () => void
   effectiveCount: number
-  canCorroborate: boolean
-  alreadyDone: boolean
+  isConfirmed: boolean
   corroborating: boolean
   onCorroborate: () => void
 }) {
@@ -362,18 +362,19 @@ function PanelContent({
             </div>
             <button
               onClick={onCorroborate}
-              disabled={!canCorroborate || corroborating}
+              disabled={corroborating}
+              aria-pressed={isConfirmed}
               className={[
-                'flex items-center gap-1.5 text-[12px] font-semibold rounded-lg px-3 py-1.5 border transition-all',
-                alreadyDone
-                  ? 'text-green-400 bg-green-950/30 border-green-900/40 cursor-default'
-                  : 'text-foreground bg-accent/50 border-border hover:bg-accent hover:border-border/80 disabled:opacity-50',
+                'flex items-center gap-1.5 text-[12px] font-semibold rounded-lg px-3 py-1.5 border transition-all disabled:opacity-50',
+                isConfirmed
+                  ? 'text-green-400 bg-green-950/30 border-green-900/40 hover:bg-green-950/50 hover:text-green-300'
+                  : 'text-foreground bg-accent/50 border-border hover:bg-accent hover:border-border/80',
               ].join(' ')}
             >
               {corroborating ? (
-                <span className="animate-pulse">Confirming…</span>
-              ) : alreadyDone ? (
-                <><CheckCircle2 size={11} /> Confirmed</>
+                <span className="animate-pulse">{isConfirmed ? 'Unconfirming…' : 'Confirming…'}</span>
+              ) : isConfirmed ? (
+                <><BadgeX size={11} /> Unconfirm</>
               ) : (
                 <><Eye size={11} /> I see this too</>
               )}
