@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { toast } from 'sonner'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   X, MapPin, ExternalLink, Play, Users, Eye, Phone,
@@ -90,13 +91,10 @@ export function IncidentPanel({ incident, onClose }: IncidentPanelProps) {
       setCorroborated(confirmed)
       if (confirmed) markCorroborated(incident.id)
       else unmarkCorroborated(incident.id)
-    } catch {
-      // silent fail — optimistic local toggle
-      const next = !(corroborated || alreadyDone)
-      setLocalCount(effectiveCount + (next ? 1 : -1))
-      setCorroborated(next)
-      if (next) markCorroborated(incident.id)
-      else unmarkCorroborated(incident.id)
+    } catch (err) {
+      // Rate-limit or network error — surface it briefly to the user.
+      const msg = err instanceof Error ? err.message : 'Could not update confirmation'
+      toast.error(msg)
     } finally {
       setCorroborating(false)
     }

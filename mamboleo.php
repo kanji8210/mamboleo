@@ -110,6 +110,47 @@ function mamboleo_start_session(): string {
     return session_id();
 }
 
+function mamboleo_client_ip(): string {
+    // Prefer X-Forwarded-For first entry (may be a proxy), fall back to REMOTE_ADDR.
+    $raw = '';
+    if ( ! empty( $_SERVER['HTTP_X_FORWARDED_FOR'] ) ) {
+        $raw = trim( explode( ',', $_SERVER['HTTP_X_FORWARDED_FOR'] )[0] );
+    }
+    if ( $raw === '' ) {
+        $raw = $_SERVER['REMOTE_ADDR'] ?? '';
+    }
+    $ip = filter_var( $raw, FILTER_VALIDATE_IP );
+    return $ip ? $ip : '';
+}
+
+/**
+ * Return a one-way, site-specific HMAC-SHA256 hash of the client IP.
+ *
+ * The salt is stored in a dedicated wp_option (`mamboleo_ip_salt`) that is
+ * generated once and never rotated, so equality-matching across requests
+ * keeps working while raw IPs are never persisted anywhere.
+ *
+ * An empty string is returned when the IP cannot be determined — callers
+ * should treat that as "no IP signal" (never as a match).
+ */
+function mamboleo_hash_ip( string $ip = '' ): string {
+    if ( $ip === '' ) {
+        $ip = mamboleo_client_ip();
+    }
+    if ( $ip === '' ) {
+        return '';
+    }
+
+    $salt = get_option( 'mamboleo_ip_salt', '' );
+    if ( $salt === '' ) {
+        $salt = wp_generate_password( 64, true, true );
+        // autoload=yes so every REST request has it cheaply available.
+        add_option( 'mamboleo_ip_salt', $salt, '', 'yes' );
+    }
+
+    return hash_hmac( 'sha256', $ip, $salt );
+}
+
 function mamboleo_rest_submit_report( WP_REST_Request $request ) {
     $params = $request->get_json_params();
     if ( ! is_array( $params ) ) {
@@ -225,7 +266,7 @@ function mamboleo_rest_submit_report( WP_REST_Request $request ) {
     }
 
     // Audit
-    update_post_meta( $post_id, '_mamboleo_reporter_ip', $_SERVER['REMOTE_ADDR'] ?? '' );
+    update_post_meta( $post_id, '_mamboleo_reporter_ip_hash', mamboleo_hash_ip() );
     update_post_meta( $post_id, '_mamboleo_reporter_session', session_id() );
 
     // Private contact details — prefixed with "_" so they are NOT exposed via
@@ -254,25 +295,92 @@ function mamboleo_rest_toggle_corroboration( WP_REST_Request $request ) {
     }
 
     $session_id = mamboleo_start_session();
-    if ( $session_id === '' ) {
-        return new WP_Error( 'mamboleo_no_session', 'Could not establish a session.', [ 'status' => 500 ] );
+    $ip_hash    = mamboleo_hash_ip();
+
+    if ( $session_id === '' && $ip_hash === '' ) {
+        return new WP_Error( 'mamboleo_no_identity', 'Could not identify user.', [ 'status' => 500 ] );
     }
 
+    // ── Anti-spam: per-user, per-incident cooldown ──────────────────────
+    //
+    // A user can confirm/unconfirm the same incident at most once every
+    // MAMBOLEO_CORROBORATE_COOLDOWN seconds (default 30s). The cooldown
+    // is tracked in the PHP session and in a transient keyed by the
+    // hashed IP, so a cookie wipe doesn't reset it and raw IPs are never
+    // written to the database.
+    $cooldown = defined( 'MAMBOLEO_CORROBORATE_COOLDOWN' )
+        ? (int) MAMBOLEO_CORROBORATE_COOLDOWN
+        : 30;
+
+    $session_key = "mamboleo_corr_last_{$post_id}";
+    $ip_key      = 'mamboleo_corr_' . substr( hash( 'sha256', $ip_hash . '|' . $post_id ), 0, 32 );
+
+    $last_session = (int) ( $_SESSION[ $session_key ] ?? 0 );
+    $last_ip      = $ip_hash !== '' ? (int) get_transient( $ip_key ) : 0;
+    $last         = max( $last_session, $last_ip );
+
+    if ( $last && ( time() - $last ) < $cooldown ) {
+        $retry = $cooldown - ( time() - $last );
+        return new WP_Error(
+            'mamboleo_cooldown',
+            sprintf( 'Please wait %d seconds before changing your confirmation again.', $retry ),
+            [ 'status' => 429, 'retry_after' => $retry ]
+        );
+    }
+
+    // Corroborators are stored as structured records so we can match on
+    // *either* the session id (same browser, cookie still valid) *or* the
+    // hashed IP (same device on same network, even if the session cookie
+    // was dropped). Raw IPs are never stored — only an HMAC-SHA256 hash.
+    //
+    //   [ [ 'session' => 'abc', 'ip_hash' => 'e3b0…', 'at' => 1700000000 ], ... ]
+    //
+    // A legacy string entry (plain session id) is still accepted and will
+    // be migrated transparently on the next toggle.
     $corroborators = get_post_meta( $post_id, '_mamboleo_corroborators', true );
     if ( ! is_array( $corroborators ) ) {
         $corroborators = [];
     }
 
-    $index     = array_search( $session_id, $corroborators, true );
-    $confirmed = false;
+    $match_index = -1;
+    foreach ( $corroborators as $i => $entry ) {
+        if ( is_string( $entry ) ) {
+            // Legacy format: raw session id.
+            if ( $session_id !== '' && $entry === $session_id ) {
+                $match_index = $i;
+                break;
+            }
+            continue;
+        }
+        if ( ! is_array( $entry ) ) {
+            continue;
+        }
+        $entry_session = $entry['session'] ?? '';
+        // Support both the new `ip_hash` key and any legacy raw `ip` entries
+        // by treating the legacy value as already-hashed-or-compared against
+        // nothing — we only match when the hashes are equal.
+        $entry_ip_hash = $entry['ip_hash'] ?? '';
+        if ( $session_id !== '' && $entry_session === $session_id ) {
+            $match_index = $i;
+            break;
+        }
+        if ( $ip_hash !== '' && $entry_ip_hash !== '' && hash_equals( $entry_ip_hash, $ip_hash ) ) {
+            $match_index = $i;
+            break;
+        }
+    }
 
-    if ( $index === false ) {
-        // Not yet confirmed → add
-        $corroborators[] = $session_id;
-        $confirmed       = true;
+    if ( $match_index === -1 ) {
+        // Not yet confirmed → add.
+        $corroborators[] = [
+            'session' => $session_id,
+            'ip_hash' => $ip_hash,
+            'at'      => time(),
+        ];
+        $confirmed = true;
     } else {
-        // Already confirmed → remove (unconfirm)
-        array_splice( $corroborators, $index, 1 );
+        // Already confirmed by this user → remove (unconfirm).
+        array_splice( $corroborators, $match_index, 1 );
         $confirmed = false;
     }
 
@@ -283,6 +391,12 @@ function mamboleo_rest_toggle_corroboration( WP_REST_Request $request ) {
         update_field( 'corroboration_count', $count, $post_id );
     }
     update_post_meta( $post_id, 'corroboration_count', $count );
+
+    // Record this toggle for cooldown on both axes.
+    $_SESSION[ $session_key ] = time();
+    if ( $ip_hash !== '' ) {
+        set_transient( $ip_key, time(), HOUR_IN_SECONDS );
+    }
 
     return rest_ensure_response( [
         'count'     => $count,
