@@ -35,6 +35,10 @@ export function Sidebar({
     protest: allIncidents.filter((i) => i.incidentFields.type === 'protest').length,
     flood: allIncidents.filter((i) => i.incidentFields.type === 'flood').length,
     medical: allIncidents.filter((i) => i.incidentFields.type === 'medical').length,
+    military: allIncidents.filter((i) => i.incidentFields.type === 'military').length,
+    info: allIncidents.filter((i) => i.incidentFields.type === 'info').length,
+    health: allIncidents.filter((i) => i.incidentFields.type === 'health').length,
+    environmental: allIncidents.filter((i) => i.incidentFields.type === 'environmental').length,
   }
 
   return (

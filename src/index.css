@@ -188,6 +188,47 @@
 }
 
 /* ─── Incident DivIcon pins ──────────────────────────────────────────────── */
+/* Marker wrapper allows the label to flow right of the circular pin while
+   the map anchor stays on the pin centre (iconSize matches pin only). */
+.incident-pin-icon { overflow: visible !important; }
+
+.incident-pin-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: max-content;    /* escape Leaflet's iconSize width clamp */
+  max-width: 240px;
+  pointer-events: none;  /* label & gap pass through; pin re-enables below */
+}
+
+.incident-pin-wrap .incident-pin { pointer-events: auto; }
+
+.incident-pin__label {
+  pointer-events: none;
+  flex: 0 1 auto;
+  min-width: 0;          /* allow ellipsis inside flex */
+  max-width: 180px;
+  padding: 2px 7px;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.3;
+  color: rgba(244, 244, 245, 0.95); /* zinc-100 */
+  background: rgba(24, 24, 27, 0.78); /* zinc-900/78 */
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+  user-select: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .incident-pin__label { transition: opacity 0.15s ease; }
+}
+
 .incident-pin {
   border-radius: 50%;
   display: flex;

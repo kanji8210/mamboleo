@@ -185,7 +185,7 @@ function mamboleo_rest_submit_report( WP_REST_Request $request ) {
         );
     }
 
-    $allowed_types = [ 'fire', 'accident', 'police', 'weather' ];
+    $allowed_types = [ 'fire', 'accident', 'police', 'weather', 'protest', 'flood', 'medical', 'military', 'info', 'health', 'environmental' ];
     if ( ! in_array( $type, $allowed_types, true ) ) {
         return new WP_Error( 'mamboleo_invalid_type', 'Invalid incident type.', [ 'status' => 400 ] );
     }

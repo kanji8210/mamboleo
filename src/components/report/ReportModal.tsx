@@ -8,6 +8,7 @@ import {
   X, ChevronLeft, ChevronRight, User, UserX, Flame, Car,
   Shield, CloudRain, CheckCircle2, AlertTriangle, ShieldAlert,
   HelpCircle, MapPin, Crosshair, Play, Send, AlertCircle,
+  Megaphone, Waves, Cross, Swords, Info, HeartPulse, Leaf,
 } from 'lucide-react'
 import type { IncidentType, IncidentStatus } from '@/types/incident'
 import { INCIDENT_LABELS, STATUS_LABELS } from '@/types/incident'
@@ -23,10 +24,17 @@ const NAIROBI_CENTER: [number, number] = [-1.2921, 36.8219]
 const TILE_URL = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
 
 const INCIDENT_TYPES: { value: IncidentType; Icon: React.ElementType; label: string; color: string }[] = [
-  { value: 'fire',     Icon: Flame,     label: INCIDENT_LABELS.fire,     color: '#f97316' },
-  { value: 'accident', Icon: Car,       label: INCIDENT_LABELS.accident, color: '#eab308' },
-  { value: 'police',   Icon: Shield,    label: INCIDENT_LABELS.police,   color: '#3b82f6' },
-  { value: 'weather',  Icon: CloudRain, label: INCIDENT_LABELS.weather,  color: '#22d3ee' },
+  { value: 'fire',          Icon: Flame,      label: INCIDENT_LABELS.fire,          color: '#ef4444' },
+  { value: 'accident',      Icon: Car,        label: INCIDENT_LABELS.accident,      color: '#f97316' },
+  { value: 'police',        Icon: Shield,     label: INCIDENT_LABELS.police,        color: '#3b82f6' },
+  { value: 'weather',       Icon: CloudRain,  label: INCIDENT_LABELS.weather,       color: '#06b6d4' },
+  { value: 'protest',       Icon: Megaphone,  label: INCIDENT_LABELS.protest,       color: '#eab308' },
+  { value: 'flood',         Icon: Waves,      label: INCIDENT_LABELS.flood,         color: '#0ea5e9' },
+  { value: 'medical',       Icon: Cross,      label: INCIDENT_LABELS.medical,       color: '#ec4899' },
+  { value: 'military',      Icon: Swords,     label: INCIDENT_LABELS.military,      color: '#84cc16' },
+  { value: 'info',          Icon: Info,       label: INCIDENT_LABELS.info,          color: '#a1a1aa' },
+  { value: 'health',        Icon: HeartPulse, label: INCIDENT_LABELS.health,        color: '#14b8a6' },
+  { value: 'environmental', Icon: Leaf,       label: INCIDENT_LABELS.environmental, color: '#22c55e' },
 ]
 
 const STATUSES: { value: IncidentStatus; Icon: React.ElementType; label: string; color: string }[] = [
@@ -221,13 +229,13 @@ function StepWhat({ form, onChange }: { form: FormState; onChange: (p: Partial<F
     <div className="space-y-5">
       <div>
         <p className="text-xs font-bold tracking-widest text-muted-foreground/60 uppercase font-mono mb-2">Incident type</p>
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
           {INCIDENT_TYPES.map(({ value, Icon, label, color }) => (
             <button
               key={value}
               onClick={() => onChange({ incidentType: value })}
               className={[
-                'flex flex-col items-center gap-1.5 rounded-xl p-4 border text-sm font-semibold transition-all',
+                'flex flex-col items-center gap-1.5 rounded-xl p-3 border text-xs font-semibold transition-all',
                 form.incidentType === value
                   ? 'border-transparent text-background'
                   : 'border-border text-muted-foreground hover:border-muted hover:text-foreground',

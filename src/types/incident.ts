@@ -1,6 +1,17 @@
 // ─── Incident domain types ────────────────────────────────────────────────
 
-export type IncidentType = 'fire' | 'accident' | 'police' | 'weather' | 'protest' | 'flood' | 'medical'
+export type IncidentType =
+  | 'fire'
+  | 'accident'
+  | 'police'
+  | 'weather'
+  | 'protest'
+  | 'flood'
+  | 'medical'
+  | 'military'
+  | 'info'
+  | 'health'
+  | 'environmental'
 export type SeverityLevel = 'low' | 'medium' | 'high'
 export type FilterOption = 'all' | IncidentType
 export type IncidentStatus = 'all_clear' | 'unsafe' | 'police_operating' | 'police_aggressive' | 'unknown'
@@ -69,6 +80,10 @@ export const INCIDENT_COLORS: Record<IncidentType, string> = {
   protest: '#eab308',
   flood: '#0ea5e9',
   medical: '#ec4899',
+  military: '#84cc16',      // olive / khaki
+  info: '#a1a1aa',          // neutral slate
+  health: '#14b8a6',        // teal
+  environmental: '#22c55e', // green
 }
 
 export const INCIDENT_LABELS: Record<IncidentType, string> = {
@@ -79,6 +94,10 @@ export const INCIDENT_LABELS: Record<IncidentType, string> = {
   protest: 'Protest',
   flood: 'Flood',
   medical: 'Medical',
+  military: 'Military Ops',
+  info: 'Info',
+  health: 'Public Health',
+  environmental: 'Environmental',
 }
 
 export const INCIDENT_BG: Record<IncidentType, string> = {
@@ -89,6 +108,10 @@ export const INCIDENT_BG: Record<IncidentType, string> = {
   protest: 'rgba(234,179,8,0.14)',
   flood: 'rgba(14,165,233,0.14)',
   medical: 'rgba(236,72,153,0.14)',
+  military: 'rgba(132,204,22,0.14)',
+  info: 'rgba(161,161,170,0.14)',
+  health: 'rgba(20,184,166,0.14)',
+  environmental: 'rgba(34,197,94,0.14)',
 }
 
 export const SEVERITY_COLORS: Record<SeverityLevel, string> = {

@@ -15,6 +15,10 @@ import {
   Megaphone,
   Waves,
   Cross,
+  Swords,
+  Info,
+  HeartPulse,
+  Leaf,
 } from 'lucide-react'
 
 import { useIncidents } from '@/hooks/useIncidents'
@@ -32,6 +36,10 @@ const TYPE_ICONS: Record<IncidentType, typeof Flame> = {
   protest: Megaphone,
   flood: Waves,
   medical: Cross,
+  military: Swords,
+  info: Info,
+  health: HeartPulse,
+  environmental: Leaf,
 }
 
 // Count incidents within the last N hours.
@@ -67,6 +75,7 @@ export function LiveDataSection() {
     const counts: Record<IncidentType, number> = {
       fire: 0, accident: 0, police: 0, weather: 0,
       protest: 0, flood: 0, medical: 0,
+      military: 0, info: 0, health: 0, environmental: 0,
     }
     for (const i of merged) {
       const t = i.incidentFields.type as IncidentType

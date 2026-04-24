@@ -43,6 +43,26 @@ const PIN_PATHS: Record<IncidentType, { d: string; stroke: boolean }> = {
     d: 'M11 2h2a1 1 0 0 1 1 1v7h7a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1h-7v7a1 1 0 0 1-1 1h-2a1 1 0 0 1-1-1v-7H3a1 1 0 0 1-1-1v-2a1 1 0 0 1 1-1h7V3a1 1 0 0 1 1-1z',
     stroke: false,
   },
+  // Military — shield-half
+  military: {
+    d: 'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z M12 2v20',
+    stroke: true,
+  },
+  // Info — circled i
+  info: {
+    d: 'M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20z M12 16v-4 M12 8h.01',
+    stroke: true,
+  },
+  // Public health — heart pulse
+  health: {
+    d: 'M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z M3.22 12H9.5l.5-1 2 4.5 2-7 1.5 3.5h5.27',
+    stroke: true,
+  },
+  // Environmental — leaf
+  environmental: {
+    d: 'M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19.2 2.5c1 1.5.5 7-2.9 10.4A7 7 0 0 1 11 20z M2 21c0-3 1.85-5.36 5.08-6',
+    stroke: true,
+  },
 }
 
 // â”€â”€â”€ Pin size by severity â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -53,11 +73,22 @@ const SEVERITY_SIZE: Record<SeverityLevel, { pin: number; icon: number }> = {
   high:   { pin: 44, icon: 20 },
 }
 
+// Minimal HTML escape for title text injected into divIcon HTML
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
 function buildPinIcon(
   type: IncidentType,
   severity: SeverityLevel,
   color: string,
   isVerified: boolean,
+  title: string,
 ): L.DivIcon {
   const { pin, icon } = SEVERITY_SIZE[severity] ?? SEVERITY_SIZE.medium
   const { d, stroke } = PIN_PATHS[type] ?? PIN_PATHS.accident
@@ -72,9 +103,20 @@ function buildPinIcon(
     !isVerified ? 'incident-pin--unverified' : '',
   ].filter(Boolean).join(' ')
 
+  const safeTitle = escapeHtml(title || '').trim()
+  const labelHtml = safeTitle
+    ? `<span class="incident-pin__label" title="${safeTitle}">${safeTitle}</span>`
+    : ''
+
+  // Wrap pin + label in a flex row. Anchor stays on the pin centre so the
+  // marker geometry is unchanged; the label flows to the right and
+  // truncates via CSS. The wrapper itself has no background — minimalist.
   return L.divIcon({
-    html: `<div class="${classes}" style="width:${pin}px;height:${pin}px;background:${color};color:${color};">${svg}</div>`,
-    className: '',
+    html: `<div class="incident-pin-wrap">
+      <div class="${classes}" style="width:${pin}px;height:${pin}px;background:${color};color:${color};flex:0 0 auto;">${svg}</div>
+      ${labelHtml}
+    </div>`,
+    className: 'incident-pin-icon',
     iconSize: [pin, pin],
     iconAnchor: [pin / 2, pin / 2],
   })
@@ -85,10 +127,11 @@ function buildPinIcon(
 export function IncidentMarker({ incident, onClick }: IncidentMarkerProps) {
   const { type, latitude, longitude, severity, isVerified } = incident.incidentFields
   const color = INCIDENT_COLORS[type]
+  const title = incident.title ?? ''
 
   const icon = useMemo(
-    () => buildPinIcon(type, severity, color, isVerified),
-    [type, severity, color, isVerified],
+    () => buildPinIcon(type, severity, color, isVerified, title),
+    [type, severity, color, isVerified, title],
   )
 
   return (

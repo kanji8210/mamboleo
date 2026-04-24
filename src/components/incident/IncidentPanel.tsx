@@ -5,7 +5,7 @@ import {
   X, MapPin, ExternalLink, Play, Users, Eye, Phone,
   AlertTriangle, CheckCircle2, Shield, ShieldAlert, HelpCircle,
   Flame, Car, CloudRain, Clock, BadgeCheck, BadgeX,
-  Megaphone, Waves, Cross,
+  Megaphone, Waves, Cross, Swords, Info, HeartPulse, Leaf,
 } from 'lucide-react'
 import { formatDistanceToNow, format, parseISO } from 'date-fns'
 import type { Incident, IncidentType, IncidentStatus } from '@/types/incident'
@@ -68,6 +68,34 @@ const GUIDANCE: Record<IncidentType, {
     ],
     link: 'https://www.health.go.ke',
   },
+  military: {
+    action: 'Avoid the area. Do not photograph security installations or personnel. Follow KDF / police directions without delay. Keep ID accessible.',
+    contacts: [
+      { label: 'Emergency', number: '999' },
+      { label: 'KDF Hotline', number: '0722 205 642' },
+    ],
+    link: 'https://www.mod.go.ke',
+  },
+  info: {
+    action: 'Informational bulletin. Verify with official channels before acting. Share only from trusted sources to avoid spreading unverified claims.',
+    contacts: [{ label: 'Emergency', number: '999' }],
+  },
+  health: {
+    action: 'Follow Ministry of Health guidance. Seek care early if symptomatic. Maintain hand hygiene and avoid sharing utensils or drinks.',
+    contacts: [
+      { label: 'MoH Hotline', number: '719' },
+      { label: 'Ministry of Health', number: '0729 471 414' },
+    ],
+    link: 'https://www.health.go.ke',
+  },
+  environmental: {
+    action: 'Avoid affected area if air or water quality is poor. Cover nose and mouth near smoke or dust. Report pollution events to NEMA.',
+    contacts: [
+      { label: 'NEMA Hotline', number: '0800 221 777' },
+      { label: 'Emergency', number: '999' },
+    ],
+    link: 'https://www.nema.go.ke',
+  },
 }
 
 // ─── Icon maps ────────────────────────────────────────────────────────────
@@ -88,6 +116,10 @@ const TYPE_ICONS: Record<IncidentType, React.ElementType> = {
   protest: Megaphone,
   flood: Waves,
   medical: Cross,
+  military: Swords,
+  info: Info,
+  health: HeartPulse,
+  environmental: Leaf,
 }
 
 // ─── Props ────────────────────────────────────────────────────────────────

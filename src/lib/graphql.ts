@@ -42,7 +42,7 @@ export const INCIDENTS_QUERY = gql`
   }
 `
 
-const KNOWN_TYPES = new Set(['fire', 'accident', 'police', 'weather', 'protest', 'flood', 'medical'])
+const KNOWN_TYPES = new Set(['fire', 'accident', 'police', 'weather', 'protest', 'flood', 'medical', 'military', 'info', 'health', 'environmental'])
 
 function normalizeIncident(raw: RawIncident): Incident {
   const rawType = String(raw.incidentFields.type ?? '').toLowerCase()
