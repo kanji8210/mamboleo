@@ -5,6 +5,7 @@ import { Plus, Home, Newspaper, Radio } from 'lucide-react'
 
 import { IncidentMap } from '@/components/map/IncidentMap'
 import { LiveIndicator } from '@/components/map/LiveIndicator'
+import { MapQuickNav } from '@/components/map/MapQuickNav'
 import { Sidebar } from '@/components/sidebar/Sidebar'
 import { IncidentPanel } from '@/components/incident/IncidentPanel'
 import { ReportModal } from '@/components/report/ReportModal'
@@ -20,6 +21,7 @@ export function MapPage() {
   const [filter, setFilter] = useState<FilterOption>('all')
   const [newIncidentIds, setNewIncidentIds] = useState<Set<string>>(new Set())
   const [mapTarget, setMapTarget] = useState<[number, number] | null>(null)
+  const [userLocation, setUserLocation] = useState<[number, number] | null>(null)
   const [selectedIncident, setSelectedIncident] = useState<Incident | null>(null)
   const [isReportOpen, setIsReportOpen] = useState(false);
 
@@ -142,6 +144,15 @@ export function MapPage() {
         </div>
         {/* Embassy travel advisories — auto-loaded, collapsible */}
         <AdvisoryBanner advisories={advisories} />
+
+        {/* Quick-nav: county jump + locate-me */}
+        <MapQuickNav
+          onJumpTo={(lat, lng) => setMapTarget([lat, lng])}
+          onLocateMe={(lat, lng) => {
+            setUserLocation([lat, lng])
+            setMapTarget([lat, lng])
+          }}
+        />
       </div>
 
       {/* Map and overlays */}
@@ -159,6 +170,7 @@ export function MapPage() {
           onLocationPicked={(lat, lng) => setMapTarget([lat, lng])}
           filter={filter}
           onFilterChange={setFilter}
+          userLocation={userLocation}
         />
       </div>
 

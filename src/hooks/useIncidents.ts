@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useRef, useEffect } from 'react'
 import { toast } from 'sonner'
 import { fetchIncidents } from '@/lib/graphql'
+import { subscribeIncidentEvents } from '@/lib/incidentBus'
 import type { Incident, FilterOption } from '@/types/incident'
 import { INCIDENT_LABELS } from '@/types/incident'
 
@@ -22,6 +23,23 @@ export function useIncidents({ filter, onNewIncidents }: UseIncidentsOptions) {
     retry: 2,
     retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 15_000),
   })
+
+  // ── Cross-tab refresh ────────────────────────────────────────────────
+  // When any open tab submits a new report, every other open tab refetches
+  // immediately (instead of waiting for the next 30s poll) and shows a
+  // toast so the user knows fresh data is on the way.
+  useEffect(() => {
+    const unsubscribe = subscribeIncidentEvents((ev) => {
+      if (ev.type !== 'new-report') return
+      const label = INCIDENT_LABELS[ev.incidentType as keyof typeof INCIDENT_LABELS] ?? 'Incident'
+      toast(`🚨 New ${label} reported`, {
+        description: ev.title,
+        duration: 5000,
+      })
+      void query.refetch()
+    })
+    return unsubscribe
+  }, [query])
 
   // Detect new incidents on each successful fetch
   useEffect(() => {

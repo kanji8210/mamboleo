@@ -1,8 +1,8 @@
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { VisuallyHidden } from '../ui/VisuallyHidden'
 import * as Dialog from '@radix-ui/react-dialog'
 import { motion, AnimatePresence } from 'framer-motion'
-import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet'
+import { MapContainer, TileLayer, Marker, useMap, useMapEvents } from 'react-leaflet'
 import L from 'leaflet'
 import {
   X, ChevronLeft, ChevronRight, User, UserX, Flame, Car,
@@ -12,7 +12,9 @@ import {
 import type { IncidentType, IncidentStatus } from '@/types/incident'
 import { INCIDENT_LABELS, STATUS_LABELS } from '@/types/incident'
 import { submitReport, type ReportPayload } from '@/lib/reportApi'
+import { publishIncidentEvent } from '@/lib/incidentBus'
 import { COUNTIES } from '@/lib/counties'
+import { parseLocationInput } from '@/lib/parseLocation'
 
 // ─── Constants ────────────────────────────────────────────────────────────
 
@@ -109,6 +111,21 @@ function LocationPicker({
   })
 
   return picked ? <Marker position={picked} icon={divIconRef.current} /> : null
+}
+
+// Fly the embedded map whenever the picked position changes (from GPS,
+// paste, or subcounty selection) so users see the pin move into view.
+function FlyToPicked({ picked }: { picked: [number, number] | null }) {
+  const map = useMap()
+  const prevRef = useRef<string | null>(null)
+  useEffect(() => {
+    if (!picked) return
+    const key = `${picked[0]},${picked[1]}`
+    if (prevRef.current === key) return
+    prevRef.current = key
+    map.flyTo(picked, Math.max(map.getZoom(), 15), { animate: true, duration: 0.6 })
+  }, [picked, map])
+  return null
 }
 
 // ─── Step components ──────────────────────────────────────────────────────
@@ -258,6 +275,9 @@ function StepWhere({
 }) {
   const [locating, setLocating] = useState(false)
   const [gpsError, setGpsError] = useState<string | null>(null)
+  const [pasteInput, setPasteInput] = useState('')
+  const [pasteError, setPasteError] = useState<string | null>(null)
+  const [pasteSource, setPasteSource] = useState<string | null>(null)
   const picked: [number, number] | null =
     form.lat !== null && form.lng !== null ? [form.lat, form.lng] : null
 
@@ -273,36 +293,90 @@ function StepWhere({
         setGpsError('Could not get location. Try tapping the map instead.')
         setLocating(false)
       },
-      { timeout: 8000 }
+      { enableHighAccuracy: true, timeout: 8000 }
+    )
+  }
+
+  function handlePasteChange(raw: string) {
+    setPasteInput(raw)
+    setPasteError(null)
+    setPasteSource(null)
+    if (!raw.trim()) return
+    const parsed = parseLocationInput(raw)
+    if (!parsed) {
+      setPasteError('Could not read coordinates. Paste e.g. "-1.2921, 36.8219" or a Google Maps link.')
+      return
+    }
+    onChange({ lat: parsed.lat, lng: parsed.lng })
+    setPasteSource(
+      parsed.source === 'google-maps'
+        ? 'from Google Maps link'
+        : parsed.source === 'geo-uri'
+          ? 'from geo: URI'
+          : 'from coordinates',
     )
   }
 
   return (
     <div className="space-y-3">
       <p className="text-sm text-muted-foreground">
-        Tap the map to pin the exact location, or use your GPS.
+        Pin the location. Tap the map, paste coordinates, or use your GPS.
       </p>
-      <button
-        onClick={useGPS}
-        disabled={locating}
-        className="flex items-center gap-2 text-sm font-semibold text-red-400 hover:text-red-300 disabled:opacity-50 transition-colors"
-      >
-        <Crosshair size={14} />
-        {locating ? 'Getting location…' : 'Use my GPS'}
-      </button>
-      {gpsError && (
-        <p className="text-xs text-amber-400 flex items-center gap-1"><AlertCircle size={11} />{gpsError}</p>
-      )}
-      <div className="rounded-xl overflow-hidden border border-border" style={{ height: 220 }}>
+
+      {/* Smart paste input — accepts "lat, lng" or a Google Maps URL */}
+      <div>
+        <label htmlFor="loc-paste" className="sr-only">Paste coordinates or Google Maps link</label>
+        <div className="relative">
+          <MapPin size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <input
+            id="loc-paste"
+            type="text"
+            inputMode="text"
+            autoComplete="off"
+            placeholder="Paste coords or Google Maps link"
+            value={pasteInput}
+            onChange={e => handlePasteChange(e.target.value)}
+            className="w-full bg-input border border-border rounded-xl pl-9 pr-3 py-2.5 text-[16px] sm:text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-red-500/40"
+          />
+        </div>
+        {pasteError && (
+          <p className="mt-1 text-xs text-amber-400 flex items-center gap-1">
+            <AlertCircle size={11} /> {pasteError}
+          </p>
+        )}
+        {pasteSource && !pasteError && (
+          <p className="mt-1 text-xs text-emerald-400 flex items-center gap-1">
+            <CheckCircle2 size={11} /> Pinned {pasteSource}
+          </p>
+        )}
+      </div>
+
+      <div className="flex flex-wrap items-center gap-3">
+        <button
+          onClick={useGPS}
+          disabled={locating}
+          className="flex items-center gap-2 text-sm font-semibold text-red-400 hover:text-red-300 disabled:opacity-50 transition-colors"
+        >
+          <Crosshair size={14} />
+          {locating ? 'Getting location…' : 'Use my GPS'}
+        </button>
+        {gpsError && (
+          <p className="text-xs text-amber-400 flex items-center gap-1"><AlertCircle size={11} />{gpsError}</p>
+        )}
+      </div>
+
+      <div className="rounded-xl overflow-hidden border border-border" style={{ height: 300 }}>
         <MapContainer
           key="report-map"
           center={picked ?? NAIROBI_CENTER}
           zoom={picked ? 14 : 11}
           style={{ height: '100%', width: '100%' }}
-          zoomControl={false}
+          zoomControl={true}
+          scrollWheelZoom={true}
           attributionControl={false}
         >
           <TileLayer url={TILE_URL} />
+          <FlyToPicked picked={picked} />
           <LocationPicker
             onPick={(lat, lng) => onChange({ lat, lng })}
             picked={picked}
@@ -599,6 +673,13 @@ export function ReportModal({ isOpen, onClose, onSubmitSuccess }: ReportModalPro
       }
       await submitReport(payload)
       setDone(true)
+      // Tell every other open Mamboleo tab/window to refresh immediately
+      // instead of waiting for the next 30-second poll tick.
+      publishIncidentEvent({
+        type: 'new-report',
+        title: form.title || INCIDENT_LABELS[form.incidentType],
+        incidentType: form.incidentType,
+      })
       onSubmitSuccess()
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Submission failed. Please try again.'

@@ -9,6 +9,7 @@ import { LiveIndicator } from './LiveIndicator'
 import { PingLayer } from './PingLayer'
 import { MapController } from './MapController'
 import { MapLegend } from './MapLegend'
+import { UserLocationMarker } from './UserLocationMarker'
 
 const EAST_AFRICA: [number, number] = [-0.5, 36.5]
 
@@ -25,6 +26,8 @@ interface IncidentMapProps {
   onLocationPicked?: (lat: number, lng: number) => void
   filter?: FilterOption
   onFilterChange?: (f: FilterOption) => void
+  userLocation?: [number, number] | null
+  userLocationAccuracy?: number | null
 }
 
 function LocationPickerLayer({
@@ -78,6 +81,8 @@ export function IncidentMap({
   onLocationPicked,
   filter,
   onFilterChange,
+  userLocation = null,
+  userLocationAccuracy = null,
 }: IncidentMapProps) {
   const isDoneEmpty = !isLoading && !isError && allIncidents.length === 0
 
@@ -198,6 +203,9 @@ export function IncidentMap({
 
         {/* Ripple animation for newly detected incidents */}
         <PingLayer incidents={allIncidents} newIncidentIds={newIncidentIds} />
+
+        {/* User's shared location (blue pulsing dot) */}
+        <UserLocationMarker position={userLocation} accuracy={userLocationAccuracy} />
 
         {/* Programmatic pan/zoom from sidebar clicks + first-load fit */}
         <MapController target={mapTarget} incidents={allIncidents} />
