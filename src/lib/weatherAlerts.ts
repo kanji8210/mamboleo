@@ -65,23 +65,13 @@ interface OpenMeteoResponse {
   }
 }
 
-async function fetchOne(source: WeatherSource): Promise<Incident | null> {
-  const url =
-    'https://api.open-meteo.com/v1/forecast' +
-    `?latitude=${source.latitude}&longitude=${source.longitude}` +
-    '&current=weather_code,precipitation,wind_gusts_10m,temperature_2m' +
-    '&timezone=auto'
+// Open-Meteo multi-location response — when latitude/longitude are
+// comma-separated lists the API returns an array of per-location results.
+type OpenMeteoMultiResponse = OpenMeteoResponse[] | OpenMeteoResponse
 
-  const res = await fetch(url)
-  if (!res.ok) return null
-  const data = (await res.json()) as OpenMeteoResponse
-  const current = data.current
-  if (!current) return null
-
+function buildAlert(source: WeatherSource, current: NonNullable<OpenMeteoResponse['current']>): Incident | null {
   const code = current.weather_code
   const base = WMO_ALERTS[code]
-
-  // Escalate to "high" if gusts > 60 km/h regardless of weather code.
   const gusty = current.wind_gusts_10m >= 60
 
   if (!base && !gusty) return null
@@ -97,11 +87,7 @@ async function fetchOne(source: WeatherSource): Promise<Incident | null> {
     `(temp ${Math.round(current.temperature_2m)}°C, ` +
     `precip ${current.precipitation.toFixed(1)} mm${gustNote}).`
 
-  // Synthetic stable ID so React keys and the "new incident" detector behave.
   const id = `weather-openmeteo-${source.name.toLowerCase()}`
-
-  // Link to the Open-Meteo forecast page for this exact coordinate so users
-  // can read the full official hourly forecast in context.
   const sourceUrl =
     `https://open-meteo.com/en/docs#latitude=${source.latitude}` +
     `&longitude=${source.longitude}&current=weather_code,temperature_2m,precipitation,wind_gusts_10m`
@@ -129,13 +115,44 @@ async function fetchOne(source: WeatherSource): Promise<Incident | null> {
   }
 }
 
+// In-memory cache so transient 429/5xx errors don't wipe the weather layer.
+let lastAlerts: Incident[] = []
+
 export async function fetchOfficialWeatherAlerts(
   sources: WeatherSource[] = KENYA_WEATHER_SOURCES,
 ): Promise<Incident[]> {
-  const results = await Promise.allSettled(sources.map(fetchOne))
-  const alerts: Incident[] = []
-  for (const r of results) {
-    if (r.status === 'fulfilled' && r.value) alerts.push(r.value)
+  if (sources.length === 0) return []
+
+  // Batch all coordinates into ONE request — Open-Meteo accepts comma-
+  // separated latitude/longitude lists and returns an array of current
+  // readings in the same order. This cuts 10 calls → 1 and avoids 429s.
+  const lats = sources.map((s) => s.latitude).join(',')
+  const lngs = sources.map((s) => s.longitude).join(',')
+  const url =
+    'https://api.open-meteo.com/v1/forecast' +
+    `?latitude=${lats}&longitude=${lngs}` +
+    '&current=weather_code,precipitation,wind_gusts_10m,temperature_2m' +
+    '&timezone=auto'
+
+  try {
+    const res = await fetch(url)
+    if (!res.ok) {
+      // Keep showing the previous alerts on transient errors.
+      return lastAlerts
+    }
+    const data = (await res.json()) as OpenMeteoMultiResponse
+    const arr = Array.isArray(data) ? data : [data]
+
+    const alerts: Incident[] = []
+    for (let i = 0; i < sources.length && i < arr.length; i++) {
+      const current = arr[i]?.current
+      if (!current) continue
+      const alert = buildAlert(sources[i], current)
+      if (alert) alerts.push(alert)
+    }
+    lastAlerts = alerts
+    return alerts
+  } catch {
+    return lastAlerts
   }
-  return alerts
 }
