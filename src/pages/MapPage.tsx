@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react'
+import { Link } from 'react-router-dom'
 import { Toaster } from 'sonner'
-import { Plus } from 'lucide-react'
+import { Plus, Home, Newspaper, Radio } from 'lucide-react'
 
 import { IncidentMap } from '@/components/map/IncidentMap'
 import { LiveIndicator } from '@/components/map/LiveIndicator'
@@ -79,17 +80,58 @@ export function MapPage() {
       {/* Mobile top bar */}
       <div className="sticky top-0 z-[900] w-full bg-card/95 backdrop-blur-md border-b border-border flex flex-col gap-0 md:gap-2">
         <div className="flex items-center justify-between px-3 py-2 gap-2">
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-bold text-foreground">
+          <div className="flex items-center gap-3 min-w-0">
+            {/* Brand → home */}
+            <Link to="/" className="flex items-center gap-1.5 flex-shrink-0 group" title="Back to home">
+              <div className="w-6 h-6 rounded-md bg-red-600/20 border border-red-600/40 flex items-center justify-center">
+                <Radio size={12} className="text-red-400" />
+              </div>
+              <span className="hidden sm:inline text-[13px] font-black tracking-[0.15em] text-foreground font-mono group-hover:text-red-400 transition-colors">
+                MAMBOLEO
+              </span>
+            </Link>
+            <span className="text-sm font-bold text-foreground whitespace-nowrap">
               {allIncidents.length} Incidents
             </span>
           </div>
-          <button
-            className="flex items-center gap-1 bg-red-600 hover:bg-red-500 text-white text-xs font-semibold rounded-full px-3 py-1.5 shadow transition-colors"
-            onClick={() => setIsReportOpen(true)}
-          >
-            <Plus size={14} /> Add Report
-          </button>
+          <div className="flex items-center gap-1.5">
+            {/* Quick nav to leave map view */}
+            <Link
+              to="/"
+              className="hidden sm:flex items-center gap-1 text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-accent rounded-full px-2.5 py-1.5 transition-colors"
+              title="Home"
+            >
+              <Home size={13} /> Home
+            </Link>
+            <Link
+              to="/media"
+              className="hidden sm:flex items-center gap-1 text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-accent rounded-full px-2.5 py-1.5 transition-colors"
+              title="Media Monitor"
+            >
+              <Newspaper size={13} /> Media
+            </Link>
+            {/* Mobile — icon-only */}
+            <Link
+              to="/"
+              className="sm:hidden p-1.5 text-muted-foreground hover:text-foreground hover:bg-accent rounded-full transition-colors"
+              title="Home"
+            >
+              <Home size={16} />
+            </Link>
+            <Link
+              to="/media"
+              className="sm:hidden p-1.5 text-muted-foreground hover:text-foreground hover:bg-accent rounded-full transition-colors"
+              title="Media Monitor"
+            >
+              <Newspaper size={16} />
+            </Link>
+            <button
+              className="flex items-center gap-1 bg-red-600 hover:bg-red-500 text-white text-xs font-semibold rounded-full px-3 py-1.5 shadow transition-colors"
+              onClick={() => setIsReportOpen(true)}
+            >
+              <Plus size={14} /> <span className="hidden xs:inline sm:inline">Add Report</span>
+            </button>
+          </div>
         </div>
         <div className="flex items-center justify-between px-3 pb-2 gap-2">
           <span className="text-xs font-semibold text-muted-foreground tracking-wide uppercase">Mamboleo Command Center</span>

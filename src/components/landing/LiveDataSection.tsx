@@ -12,6 +12,9 @@ import {
   Activity,
   MapPin,
   Clock,
+  Megaphone,
+  Waves,
+  Cross,
 } from 'lucide-react'
 
 import { useIncidents } from '@/hooks/useIncidents'
@@ -26,6 +29,9 @@ const TYPE_ICONS: Record<IncidentType, typeof Flame> = {
   accident: Car,
   police: Shield,
   weather: CloudRain,
+  protest: Megaphone,
+  flood: Waves,
+  medical: Cross,
 }
 
 // Count incidents within the last N hours.
@@ -60,6 +66,7 @@ export function LiveDataSection() {
   const breakdown = useMemo(() => {
     const counts: Record<IncidentType, number> = {
       fire: 0, accident: 0, police: 0, weather: 0,
+      protest: 0, flood: 0, medical: 0,
     }
     for (const i of merged) {
       const t = i.incidentFields.type as IncidentType

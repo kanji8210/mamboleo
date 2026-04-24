@@ -28,6 +28,21 @@ const PIN_PATHS: Record<IncidentType, { d: string; stroke: boolean }> = {
     d: 'M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242M16 14v6M8 14v6M12 16v6',
     stroke: true,
   },
+  // Protest — megaphone
+  protest: {
+    d: 'M3 11l18-5v12L3 14v-3z M11.6 16.8a3 3 0 1 1-5.8-1.6',
+    stroke: true,
+  },
+  // Flood — waves
+  flood: {
+    d: 'M2 6c.6.5 1.2 1 2.5 1C7 7 7 5 9.5 5c2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1 M2 12c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1 M2 18c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1',
+    stroke: true,
+  },
+  // Medical — plus / cross
+  medical: {
+    d: 'M11 2h2a1 1 0 0 1 1 1v7h7a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1h-7v7a1 1 0 0 1-1 1h-2a1 1 0 0 1-1-1v-7H3a1 1 0 0 1-1-1v-2a1 1 0 0 1 1-1h7V3a1 1 0 0 1 1-1z',
+    stroke: false,
+  },
 }
 
 // â”€â”€â”€ Pin size by severity â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -44,8 +59,8 @@ function buildPinIcon(
   color: string,
   isVerified: boolean,
 ): L.DivIcon {
-  const { pin, icon } = SEVERITY_SIZE[severity]
-  const { d, stroke } = PIN_PATHS[type]
+  const { pin, icon } = SEVERITY_SIZE[severity] ?? SEVERITY_SIZE.medium
+  const { d, stroke } = PIN_PATHS[type] ?? PIN_PATHS.accident
 
   const svg = stroke
     ? `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="${icon}" height="${icon}" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="${d}"/></svg>`

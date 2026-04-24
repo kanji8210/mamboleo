@@ -86,6 +86,8 @@ const FEATURES = [
     title: 'Live Security Map',
     status: 'live' as const,
     color: 'red',
+    href: '/map',
+    cta: 'Open Map',
     description:
       'Full-screen real-time map of security incidents across all 47 counties. Clustered markers, severity levels, and auto-refresh every 30 seconds.',
     tags: ['Fire', 'Accidents', 'Police', 'Weather'],
@@ -93,8 +95,10 @@ const FEATURES = [
   {
     icon: Newspaper,
     title: 'Media Monitor',
-    status: 'soon' as const,
+    status: 'live' as const,
     color: 'amber',
+    href: '/media',
+    cta: 'Open Monitor',
     description:
       'Automatically ingest articles from 40+ Kenyan outlets via RSS feeds and web scraping. Build a central database for analysis and trend detection.',
     tags: ['RSS Feeds', 'Web Scraping', 'NLP', '40+ outlets'],
@@ -104,6 +108,8 @@ const FEATURES = [
     title: 'Bias Comparator',
     status: 'soon' as const,
     color: 'blue',
+    href: null,
+    cta: null,
     description:
       'See how different media outlets cover the same story. AI-powered bias scoring and side-by-side comparisons using Kenya-specific NLP models.',
     tags: ['Bias Scoring', 'Article Clustering', 'HuggingFace', 'Ground News-style'],
@@ -113,6 +119,8 @@ const FEATURES = [
     title: 'Social Pulse',
     status: 'soon' as const,
     color: 'purple',
+    href: null,
+    cta: null,
     description:
       'Track public conversations on X, Facebook, and Instagram. Sentiment analysis on trending topics and real-time social signal monitoring.',
     tags: ['Sentiment', 'X / Twitter', 'Facebook', 'Trending'],
@@ -363,55 +371,65 @@ export function LandingPage() {
 
         {/* Feature cards grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {FEATURES.map(({ icon: Icon, title, status, color, description, tags }, i) => {
+          {FEATURES.map(({ icon: Icon, title, status, color, description, tags, href, cta }, i) => {
             const c = colorMap[color as keyof typeof colorMap]
-            return (
-              <FadeIn key={title} delay={i * 0.08}>
-                <div
-                  className={`feature-card relative rounded-2xl border p-6 transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl ${c.bg} ${c.border}`}
-                >
-                  {/* Status badge */}
-                  <div className="flex items-start justify-between mb-5">
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${c.bg} border ${c.border}`}>
-                      <Icon size={18} className={c.icon} />
-                    </div>
-                    {status === 'live' ? (
-                      <span className="flex items-center gap-1.5 text-[10px] font-bold tracking-widest text-red-400 font-mono border border-red-900/60 bg-red-950/40 rounded-full px-2.5 py-1">
-                        <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
-                        LIVE
-                      </span>
-                    ) : (
-                      <span className="text-[10px] font-bold tracking-widest text-muted-foreground/60 font-mono border border-border rounded-full px-2.5 py-1">
-                        COMING SOON
-                      </span>
-                    )}
+
+            const card = (
+              <div
+                className={`feature-card relative rounded-2xl border p-6 transition-all duration-300 h-full ${
+                  href ? 'hover:-translate-y-1 hover:shadow-2xl cursor-pointer' : ''
+                } ${c.bg} ${c.border}`}
+              >
+                {/* Status badge */}
+                <div className="flex items-start justify-between mb-5">
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${c.bg} border ${c.border}`}>
+                    <Icon size={18} className={c.icon} />
                   </div>
-
-                  <h3 className="text-lg font-bold text-foreground mb-2">{title}</h3>
-                  <p className="text-sm text-muted-foreground leading-relaxed mb-4">{description}</p>
-
-                  {/* Tags */}
-                  <div className="flex flex-wrap gap-1.5">
-                    {tags.map((tag) => (
-                      <span
-                        key={tag}
-                        className={`text-[10px] font-semibold rounded-full px-2 py-0.5 border ${c.tag}`}
-                      >
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-
-                  {/* CTA link */}
-                  {status === 'live' && (
-                    <Link
-                      to="/map"
-                      className={`mt-5 flex items-center gap-1.5 text-sm font-semibold ${c.icon} hover:underline`}
-                    >
-                      Open Map <ArrowRight size={13} />
-                    </Link>
+                  {status === 'live' ? (
+                    <span className={`flex items-center gap-1.5 text-[10px] font-bold tracking-widest font-mono border rounded-full px-2.5 py-1 ${c.tag}`}>
+                      <span className="w-1.5 h-1.5 rounded-full bg-current animate-pulse" />
+                      LIVE
+                    </span>
+                  ) : (
+                    <span className="text-[10px] font-bold tracking-widest text-muted-foreground/60 font-mono border border-border rounded-full px-2.5 py-1">
+                      COMING SOON
+                    </span>
                   )}
                 </div>
+
+                <h3 className="text-lg font-bold text-foreground mb-2">{title}</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed mb-4">{description}</p>
+
+                {/* Tags */}
+                <div className="flex flex-wrap gap-1.5">
+                  {tags.map((tag) => (
+                    <span
+                      key={tag}
+                      className={`text-[10px] font-semibold rounded-full px-2 py-0.5 border ${c.tag}`}
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+
+                {/* CTA link */}
+                {href && cta && (
+                  <div className={`mt-5 flex items-center gap-1.5 text-sm font-semibold ${c.icon}`}>
+                    {cta} <ArrowRight size={13} />
+                  </div>
+                )}
+              </div>
+            )
+
+            return (
+              <FadeIn key={title} delay={i * 0.08}>
+                {href ? (
+                  <Link to={href} className="block h-full group">
+                    {card}
+                  </Link>
+                ) : (
+                  card
+                )}
               </FadeIn>
             )
           })}

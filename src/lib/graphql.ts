@@ -42,17 +42,28 @@ export const INCIDENTS_QUERY = gql`
   }
 `
 
+const KNOWN_TYPES = new Set(['fire', 'accident', 'police', 'weather', 'protest', 'flood', 'medical'])
+
 function normalizeIncident(raw: RawIncident): Incident {
+  const rawType = String(raw.incidentFields.type ?? '').toLowerCase()
+  const type = (KNOWN_TYPES.has(rawType) ? rawType : 'accident') as Incident['incidentFields']['type']
+
+  const rawSev = String(raw.incidentFields.severity ?? 'medium').toLowerCase()
+  const severity = (['low', 'medium', 'high'].includes(rawSev) ? rawSev : 'medium') as Incident['incidentFields']['severity']
+
+  const lat = Number(raw.incidentFields.latitude)
+  const lng = Number(raw.incidentFields.longitude)
+
   return {
     id: raw.id,
     title: raw.title,
     date: raw.date,
     excerpt: raw.excerpt ?? '',
     incidentFields: {
-      type: raw.incidentFields.type as Incident['incidentFields']['type'],
-      latitude: Number(raw.incidentFields.latitude),
-      longitude: Number(raw.incidentFields.longitude),
-      severity: raw.incidentFields.severity as Incident['incidentFields']['severity'],
+      type,
+      latitude: Number.isFinite(lat) ? lat : 0,
+      longitude: Number.isFinite(lng) ? lng : 0,
+      severity,
       status: (raw.incidentFields.status as Incident['incidentFields']['status']) ?? 'unknown',
       incidentTime: raw.incidentFields.incidentTime ?? null,
       videoUrl: raw.incidentFields.videoUrl ?? null,
@@ -66,5 +77,8 @@ function normalizeIncident(raw: RawIncident): Incident {
 
 export async function fetchIncidents(): Promise<Incident[]> {
   const data = await graphqlClient.request<IncidentsQueryResult>(INCIDENTS_QUERY)
-  return data.incidents.nodes.map(normalizeIncident)
+  return data.incidents.nodes
+    .map(normalizeIncident)
+    // Drop incidents with invalid coordinates — they can't be plotted
+    .filter((i) => i.incidentFields.latitude !== 0 || i.incidentFields.longitude !== 0)
 }

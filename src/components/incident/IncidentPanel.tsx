@@ -5,6 +5,7 @@ import {
   X, MapPin, ExternalLink, Play, Users, Eye, Phone,
   AlertTriangle, CheckCircle2, Shield, ShieldAlert, HelpCircle,
   Flame, Car, CloudRain, Clock, BadgeCheck, BadgeX,
+  Megaphone, Waves, Cross,
 } from 'lucide-react'
 import { formatDistanceToNow, format, parseISO } from 'date-fns'
 import type { Incident, IncidentType, IncidentStatus } from '@/types/incident'
@@ -44,6 +45,29 @@ const GUIDANCE: Record<IncidentType, {
     contacts: [{ label: 'Emergency', number: '999' }],
     link: 'https://www.meteo.go.ke',
   },
+  protest: {
+    action: 'Avoid the area. Do not film police at close range. Keep identification and water handy. Leave via back streets if caught in the crowd.',
+    contacts: [
+      { label: 'Police Emergency', number: '999' },
+      { label: 'IPOA Hotline', number: '0800 906 606' },
+    ],
+  },
+  flood: {
+    action: 'Move to higher ground immediately. Avoid walking or driving through flood water — 15cm can sweep a person off their feet, 60cm can float a car. Do not touch downed power lines.',
+    contacts: [
+      { label: 'Emergency', number: '999' },
+      { label: 'Red Cross Kenya', number: '1199' },
+    ],
+    link: 'https://www.meteo.go.ke',
+  },
+  medical: {
+    action: 'Seek urgent medical care if symptomatic. Drink only treated or boiled water. Wash hands with soap. Report unusual symptoms to the nearest health facility.',
+    contacts: [
+      { label: 'Emergency', number: '999' },
+      { label: 'Ministry of Health', number: '0729 471 414' },
+    ],
+    link: 'https://www.health.go.ke',
+  },
 }
 
 // ─── Icon maps ────────────────────────────────────────────────────────────
@@ -61,6 +85,9 @@ const TYPE_ICONS: Record<IncidentType, React.ElementType> = {
   accident: Car,
   police: Shield,
   weather: CloudRain,
+  protest: Megaphone,
+  flood: Waves,
+  medical: Cross,
 }
 
 // ─── Props ────────────────────────────────────────────────────────────────
