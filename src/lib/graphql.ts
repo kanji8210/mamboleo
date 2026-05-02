@@ -36,6 +36,9 @@ export const INCIDENTS_QUERY = gql`
           isAnonymous
           isVerified
           corroborationCount
+          lifecycle
+          lastUpdateAt
+          updateCount
         }
       }
     }
@@ -54,6 +57,10 @@ function normalizeIncident(raw: RawIncident): Incident {
   const lat = Number(raw.incidentFields.latitude)
   const lng = Number(raw.incidentFields.longitude)
 
+  const KNOWN_LIFECYCLES = new Set(['active', 'developing', 'resolved', 'archived'])
+  const rawLife = String(raw.incidentFields.lifecycle ?? 'active').toLowerCase()
+  const lifecycle = (KNOWN_LIFECYCLES.has(rawLife) ? rawLife : 'active') as Incident['incidentFields']['lifecycle']
+
   return {
     id: raw.id,
     title: raw.title,
@@ -71,6 +78,9 @@ function normalizeIncident(raw: RawIncident): Incident {
       isAnonymous: raw.incidentFields.isAnonymous ?? true,
       isVerified: raw.incidentFields.isVerified ?? true,
       corroborationCount: raw.incidentFields.corroborationCount ?? 0,
+      lifecycle,
+      lastUpdateAt: raw.incidentFields.lastUpdateAt ?? null,
+      updateCount: raw.incidentFields.updateCount ?? 0,
     },
   }
 }
@@ -81,4 +91,6 @@ export async function fetchIncidents(): Promise<Incident[]> {
     .map(normalizeIncident)
     // Drop incidents with invalid coordinates — they can't be plotted
     .filter((i) => i.incidentFields.latitude !== 0 || i.incidentFields.longitude !== 0)
+    // Hide archived incidents from the public map
+    .filter((i) => i.incidentFields.lifecycle !== 'archived')
 }

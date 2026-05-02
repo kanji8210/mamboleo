@@ -15,6 +15,7 @@ export type IncidentType =
 export type SeverityLevel = 'low' | 'medium' | 'high'
 export type FilterOption = 'all' | IncidentType
 export type IncidentStatus = 'all_clear' | 'unsafe' | 'police_operating' | 'police_aggressive' | 'unknown'
+export type IncidentLifecycle = 'active' | 'developing' | 'resolved' | 'archived'
 
 export interface IncidentFields {
   type: IncidentType
@@ -28,6 +29,12 @@ export interface IncidentFields {
   isAnonymous: boolean
   isVerified: boolean
   corroborationCount: number
+  /** Lifecycle stage — 'developing' = admin-pinned breaking story */
+  lifecycle: IncidentLifecycle
+  /** ISO timestamp of latest activity, used for "X ago" + freshness sort */
+  lastUpdateAt: string | null
+  /** Number of follow-up updates / corroborations */
+  updateCount: number
   /** External URL for more information (official source, article, etc.) */
   sourceUrl?: string | null
   /** Human label for the external source, shown next to the link */
@@ -61,6 +68,9 @@ export interface RawIncident {
     isAnonymous: boolean
     isVerified: boolean
     corroborationCount: number
+    lifecycle?: string | null
+    lastUpdateAt?: string | null
+    updateCount?: number | null
   }
 }
 

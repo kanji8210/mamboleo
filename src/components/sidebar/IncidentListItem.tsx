@@ -17,11 +17,13 @@ interface IncidentListItemProps {
 }
 
 export function IncidentListItem({ incident, isNew, onClick }: IncidentListItemProps) {
-  const { type, severity } = incident.incidentFields
+  const { type, severity, lifecycle, updateCount } = incident.incidentFields
   const color = INCIDENT_COLORS[type as IncidentType]
   const typeBg = INCIDENT_BG[type as IncidentType]
   const sevColor = SEVERITY_COLORS[severity]
   const sevBg = SEVERITY_BG[severity]
+  const isDeveloping = lifecycle === 'developing'
+  const isResolved = lifecycle === 'resolved'
 
   return (
     <motion.button
@@ -30,10 +32,16 @@ export function IncidentListItem({ incident, isNew, onClick }: IncidentListItemP
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.22, ease: 'easeOut' }}
       onClick={onClick}
-      className="w-full text-left px-3 py-3 border-b border-border/60 hover:bg-accent/50 active:bg-accent transition-colors duration-100 group relative"
+      className={`w-full text-left px-3 py-3 border-b border-border/60 hover:bg-accent/50 active:bg-accent transition-colors duration-100 group relative ${
+        isDeveloping ? 'bg-orange-500/5' : ''
+      } ${isResolved ? 'opacity-60' : ''}`}
     >
+      {/* Developing indicator strip (overrides New strip if both) */}
+      {isDeveloping && (
+        <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-orange-500 animate-pulse" />
+      )}
       {/* New indicator strip */}
-      {isNew && (
+      {isNew && !isDeveloping && (
         <div
           className="absolute left-0 top-0 bottom-0 w-0.5 rounded-r"
           style={{ backgroundColor: color }}
@@ -55,6 +63,17 @@ export function IncidentListItem({ incident, isNew, onClick }: IncidentListItemP
 
           {/* Type + Severity row */}
           <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+            {isDeveloping && (
+              <span className="inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-extrabold tracking-wider uppercase text-orange-300 bg-orange-500/15 border border-orange-500/40">
+                <span className="w-1.5 h-1.5 rounded-full bg-orange-400 animate-pulse" />
+                Developing
+              </span>
+            )}
+            {isResolved && (
+              <span className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-bold uppercase text-sky-300 bg-sky-500/15">
+                Resolved
+              </span>
+            )}
             <span
               className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-bold"
               style={{ color, backgroundColor: typeBg }}
@@ -67,6 +86,11 @@ export function IncidentListItem({ incident, isNew, onClick }: IncidentListItemP
             >
               {severity}
             </span>
+            {updateCount > 0 && (
+              <span className="text-[10px] font-semibold text-muted-foreground">
+                +{updateCount} update{updateCount === 1 ? '' : 's'}
+              </span>
+            )}
             {isNew && (
               <span className="text-[9px] font-extrabold tracking-widest text-red-400 uppercase animate-pulse">
                 NEW

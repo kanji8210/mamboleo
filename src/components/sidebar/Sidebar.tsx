@@ -1,4 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion'
+import { useMemo } from 'react'
 import { X, Radio, AlertTriangle, Activity } from 'lucide-react'
 import type { Incident, FilterOption } from '@/types/incident'
 import { IncidentListItem } from './IncidentListItem'
@@ -40,6 +41,20 @@ export function Sidebar({
     health: allIncidents.filter((i) => i.incidentFields.type === 'health').length,
     environmental: allIncidents.filter((i) => i.incidentFields.type === 'environmental').length,
   }
+
+  // Sort: developing (admin-pinned breaking stories) first, then by date desc.
+  // Stable sort — incidents already arrive newest-first from the GraphQL query.
+  const sortedIncidents = useMemo(() => {
+    return [...incidents].sort((a, b) => {
+      const aDev = a.incidentFields.lifecycle === 'developing' ? 1 : 0
+      const bDev = b.incidentFields.lifecycle === 'developing' ? 1 : 0
+      return bDev - aDev
+    })
+  }, [incidents])
+
+  const developingCount = sortedIncidents.filter(
+    (i) => i.incidentFields.lifecycle === 'developing',
+  ).length
 
   return (
     <AnimatePresence>
@@ -126,7 +141,13 @@ export function Sidebar({
                 </div>
               ) : (
                 <motion.ul layout className="pb-4">
-                  {incidents.map((incident) => (
+                  {developingCount > 0 && (
+                    <li className="px-3 pt-3 pb-1.5 text-[10px] font-extrabold tracking-[0.18em] uppercase text-orange-400 flex items-center gap-1.5">
+                      <Radio size={10} className="animate-pulse" />
+                      Developing · {developingCount}
+                    </li>
+                  )}
+                  {sortedIncidents.map((incident) => (
                     <li key={incident.id}>
                       <IncidentListItem
                         incident={incident}
