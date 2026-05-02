@@ -20,6 +20,7 @@ import {
 } from 'lucide-react'
 
 import { LiveDataSection } from '@/components/landing/LiveDataSection'
+import { HeroLiveMap } from '@/components/landing/HeroLiveMap'
 
 // ─── Animated counter ─────────────────────────────────────────────────────
 
@@ -265,61 +266,14 @@ export function LandingPage() {
           </div>
         </motion.div>
 
-        {/* ── Map preview card ─────────────────────────────────────────── */}
+        {/* ── Live map + recent incidents ─────────────────────────────── */}
         <motion.div
           initial={{ opacity: 0, y: 32, scale: 0.97 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           transition={{ duration: 0.7, delay: 0.55, ease: [0.22, 1, 0.36, 1] }}
-          className="w-full max-w-5xl"
+          className="w-full flex justify-center"
         >
-          <Link to="/map" className="block group relative rounded-2xl overflow-hidden border border-border hover:border-red-900/50 transition-all shadow-2xl">
-            {/* Map mock */}
-            <div className="relative h-[340px] sm:h-[420px] bg-[#131519] flex items-center justify-center">
-              {/* Dot grid overlay */}
-              <div className="absolute inset-0 dot-grid opacity-40" />
-              {/* Kenya silhouette placeholder */}
-              <div className="relative z-10 flex flex-col items-center gap-4">
-                <div className="relative">
-                  <div className="w-24 h-24 rounded-full border-2 border-red-500/30 flex items-center justify-center">
-                    <div className="w-16 h-16 rounded-full border-2 border-red-500/50 flex items-center justify-center">
-                      <div className="w-8 h-8 rounded-full bg-red-600 animate-pulse" />
-                    </div>
-                  </div>
-                  {/* Floating incident dots */}
-                  {[
-                    { x: '-60px', y: '-30px', color: '#ef4444' },
-                    { x: '50px', y: '-50px', color: '#f97316' },
-                    { x: '70px', y: '30px', color: '#3b82f6' },
-                    { x: '-40px', y: '50px', color: '#06b6d4' },
-                  ].map((dot, i) => (
-                    <motion.div
-                      key={i}
-                      className="absolute w-3 h-3 rounded-full"
-                      style={{ backgroundColor: dot.color, left: `calc(50% + ${dot.x})`, top: `calc(50% + ${dot.y})`, transform: 'translate(-50%,-50%)' }}
-                      animate={{ scale: [1, 1.4, 1], opacity: [0.8, 1, 0.8] }}
-                      transition={{ duration: 2 + i * 0.5, repeat: Infinity, delay: i * 0.4 }}
-                    />
-                  ))}
-                </div>
-                <p className="text-muted-foreground/60 text-sm font-mono tracking-widest">NAIROBI · LIVE</p>
-              </div>
-              {/* Hover CTA overlay */}
-              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
-                <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-2 bg-red-600 text-white font-semibold px-5 py-2.5 rounded-xl text-sm">
-                  <Map size={14} />
-                  Open Full Map
-                </div>
-              </div>
-            </div>
-            {/* Card footer */}
-            <div className="bg-card px-5 py-3 flex items-center justify-between border-t border-border">
-              <div className="flex items-center gap-2 text-xs text-muted-foreground font-mono">
-                <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
-                LIVE DATA · Kenya
-              </div>
-              <span className="text-xs text-muted-foreground/60 font-mono">Click to explore →</span>
-            </div>
-          </Link>
+          <HeroLiveMap />
         </motion.div>
       </section>
 
