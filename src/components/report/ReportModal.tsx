@@ -386,7 +386,15 @@ function StepWhere({
           scrollWheelZoom={true}
           attributionControl={false}
         >
-          <TileLayer url={TILE_URL} />
+          <TileLayer
+            url={TILE_URL}
+            subdomains="abcd"
+            keepBuffer={4}
+            updateWhenIdle
+            updateWhenZooming={false}
+            crossOrigin
+            errorTileUrl="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
+          />
           <FlyToPicked picked={picked} />
           <LocationPicker
             onPick={(lat, lng) => onChange({ lat, lng })}

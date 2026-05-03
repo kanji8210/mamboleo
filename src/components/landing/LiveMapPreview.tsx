@@ -90,6 +90,11 @@ export function LiveMapPreview({
             url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
             subdomains="abcd"
             maxZoom={19}
+            keepBuffer={4}
+            updateWhenIdle
+            updateWhenZooming={false}
+            crossOrigin
+            errorTileUrl="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
           />
 
           {recent.map((inc) => {

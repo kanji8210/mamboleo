@@ -14,8 +14,11 @@ export function useWeatherAlerts(enabled = true) {
     staleTime: WEATHER_REFETCH_MS - 30_000,
     gcTime: 60 * 60 * 1000,           // keep last payload for 1h across remounts
     refetchOnWindowFocus: false,      // avoid re-hitting on tab focus
-    retry: 2,
-    retryDelay: (attempt) => Math.min(30_000, 2_000 * 2 ** attempt),
+    // The fetcher already handles its own retry semantics (it returns the
+    // last good payload on failure rather than throwing), so React Query
+    // shouldn't retry — that would only multiply the noisy abort warnings
+    // on flaky networks.
+    retry: false,
     enabled,
   })
 }

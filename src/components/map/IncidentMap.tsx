@@ -174,12 +174,23 @@ export function IncidentMap({
         zoomControl={false}
         attributionControl={false}
       >
-        {/* Dark-friendly CartoDB tile layer */}
+        {/* Dark-friendly CartoDB tile layer.
+            keepBuffer / updateWhenIdle / updateWhenZooming are tuned for
+            slow networks: we keep older tiles visible during pan-zoom and
+            only fetch new ones once the gesture settles, which cuts the
+            flood of NS_BINDING_ABORTED requests Leaflet otherwise produces.
+            errorTileUrl falls back to a 1×1 transparent gif so a single
+            failed tile doesn't render as a broken image. */}
         <TileLayer
           url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>'
           subdomains="abcd"
           maxZoom={19}
+          keepBuffer={4}
+          updateWhenIdle
+          updateWhenZooming={false}
+          crossOrigin
+          errorTileUrl="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
         />
 
         <MarkerClusterGroup

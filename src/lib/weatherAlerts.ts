@@ -138,7 +138,21 @@ export async function fetchOfficialWeatherAlerts(
     '&timezone=auto'
 
   try {
-    const res = await fetch(url)
+    // Abort if the request hangs longer than 8s — under network blocks
+    // or DNS failures fetch() will otherwise wait until the browser's
+    // default timeout (often 90s+) and the user sees scary "CORS"
+    // errors in the console (a connection failure with no response is
+    // reported as a CORS error since no Access-Control-Allow-Origin
+    // header was received). The weather layer is non-critical, so we
+    // fail fast and just keep the previous alerts visible.
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), 8000)
+    let res: Response
+    try {
+      res = await fetch(url, { signal: controller.signal })
+    } finally {
+      clearTimeout(timer)
+    }
     if (!res.ok) {
       // Keep showing the previous alerts on transient errors.
       return lastAlerts
@@ -155,7 +169,16 @@ export async function fetchOfficialWeatherAlerts(
     }
     lastAlerts = alerts
     return alerts
-  } catch {
+  } catch (err) {
+    // Network failure / abort / CORS — degrade silently, the rest of
+    // the app does not depend on the weather layer.
+    // We only log non-abort errors in dev: timeouts are expected on
+    // flaky connections and clutter the console with no actionable info.
+    const isAbort = err instanceof DOMException && err.name === 'AbortError'
+    if (import.meta.env.DEV && !isAbort) {
+      // eslint-disable-next-line no-console
+      console.warn('[weatherAlerts] Open-Meteo unreachable — skipping weather layer', err)
+    }
     return lastAlerts
   }
 }

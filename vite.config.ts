@@ -84,13 +84,20 @@ export default defineConfig({
             },
           },
           {
-            // OpenStreetMap tiles — CacheFirst for fast offline map rendering
-            urlPattern: /^https:\/\/[a-z]\.tile\.openstreetmap\.org\/.*/,
+            // Map tiles — CacheFirst for fast offline map rendering and
+            // resilience against slow networks. Covers OSM, CartoDB
+            // (basemaps.cartocdn.com — used by the dark theme), and
+            // OpenStreetMap-France mirrors.
+            urlPattern: ({ url }) => (
+              /(?:^|\.)tile\.openstreetmap\.org$/.test(url.hostname) ||
+              /(?:^|\.)basemaps\.cartocdn\.com$/.test(url.hostname) ||
+              /(?:^|\.)tile\.openstreetmap\.fr$/.test(url.hostname)
+            ),
             handler: 'CacheFirst',
             options: {
               cacheName: 'map-tiles-cache',
               expiration: {
-                maxEntries: 1000,
+                maxEntries: 2000,
                 maxAgeSeconds: 30 * 24 * 60 * 60,
               },
               cacheableResponse: {
