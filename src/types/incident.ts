@@ -12,6 +12,8 @@ export type IncidentType =
   | 'info'
   | 'health'
   | 'environmental'
+  | 'homicide'
+  | 'femicide'
 export type SeverityLevel = 'low' | 'medium' | 'high'
 export type FilterOption = 'all' | IncidentType
 export type IncidentStatus = 'all_clear' | 'unsafe' | 'police_operating' | 'police_aggressive' | 'unknown'
@@ -94,6 +96,8 @@ export const INCIDENT_COLORS: Record<IncidentType, string> = {
   info: '#a1a1aa',          // neutral slate
   health: '#14b8a6',        // teal
   environmental: '#22c55e', // green
+  homicide: '#7f1d1d',      // deep blood red
+  femicide: '#be185d',      // deep magenta / GBV awareness
 }
 
 export const INCIDENT_LABELS: Record<IncidentType, string> = {
@@ -108,6 +112,8 @@ export const INCIDENT_LABELS: Record<IncidentType, string> = {
   info: 'Info',
   health: 'Public Health',
   environmental: 'Environmental',
+  homicide: 'Homicide',
+  femicide: 'Femicide',
 }
 
 export const INCIDENT_BG: Record<IncidentType, string> = {
@@ -122,6 +128,8 @@ export const INCIDENT_BG: Record<IncidentType, string> = {
   info: 'rgba(161,161,170,0.14)',
   health: 'rgba(20,184,166,0.14)',
   environmental: 'rgba(34,197,94,0.14)',
+  homicide: 'rgba(127,29,29,0.18)',
+  femicide: 'rgba(190,24,93,0.18)',
 }
 
 export const SEVERITY_COLORS: Record<SeverityLevel, string> = {

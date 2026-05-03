@@ -6,6 +6,7 @@ import {
   AlertTriangle, CheckCircle2, Shield, ShieldAlert, HelpCircle,
   Flame, Car, CloudRain, Clock, BadgeCheck, BadgeX,
   Megaphone, Waves, Cross, Swords, Info, HeartPulse, Leaf,
+  Skull, HeartCrack,
 } from 'lucide-react'
 import { formatDistanceToNow, format, parseISO } from 'date-fns'
 import type { Incident, IncidentType, IncidentStatus } from '@/types/incident'
@@ -96,6 +97,25 @@ const GUIDANCE: Record<IncidentType, {
     ],
     link: 'https://www.nema.go.ke',
   },
+  homicide: {
+    action: 'Avoid the area and do not disturb the scene. If you witnessed events, contact the DCI. Preserve any evidence (photos, messages) and share only with police or trusted legal aid.',
+    contacts: [
+      { label: 'Police Emergency', number: '999' },
+      { label: 'DCI Hotline', number: '0800 722 203' },
+      { label: 'Crime Stoppers', number: '0800 722 100' },
+    ],
+    link: 'https://www.dci.go.ke',
+  },
+  femicide: {
+    action: 'If you or someone you know is in danger, leave for a safe location and call the GBV hotline. Document threats. Reach out to FIDA Kenya or the Coalition on Violence Against Women for legal and shelter support.',
+    contacts: [
+      { label: 'GBV Hotline', number: '1195' },
+      { label: 'Childline Kenya', number: '116' },
+      { label: 'FIDA Kenya', number: '0722 509 760' },
+      { label: 'Police Emergency', number: '999' },
+    ],
+    link: 'https://covaw.or.ke',
+  },
 }
 
 // ─── Icon maps ────────────────────────────────────────────────────────────
@@ -120,6 +140,8 @@ const TYPE_ICONS: Record<IncidentType, React.ElementType> = {
   info: Info,
   health: HeartPulse,
   environmental: Leaf,
+  homicide: Skull,
+  femicide: HeartCrack,
 }
 
 // ─── Props ────────────────────────────────────────────────────────────────

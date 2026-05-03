@@ -9,6 +9,7 @@ import {
   Shield, CloudRain, CheckCircle2, AlertTriangle, ShieldAlert,
   HelpCircle, MapPin, Crosshair, Play, Send, AlertCircle,
   Megaphone, Waves, Cross, Swords, Info, HeartPulse, Leaf,
+  Skull, HeartCrack,
 } from 'lucide-react'
 import type { IncidentType, IncidentStatus } from '@/types/incident'
 import { INCIDENT_LABELS, STATUS_LABELS } from '@/types/incident'
@@ -35,6 +36,8 @@ const INCIDENT_TYPES: { value: IncidentType; Icon: React.ElementType; label: str
   { value: 'info',          Icon: Info,       label: INCIDENT_LABELS.info,          color: '#a1a1aa' },
   { value: 'health',        Icon: HeartPulse, label: INCIDENT_LABELS.health,        color: '#14b8a6' },
   { value: 'environmental', Icon: Leaf,       label: INCIDENT_LABELS.environmental, color: '#22c55e' },
+  { value: 'homicide',      Icon: Skull,      label: INCIDENT_LABELS.homicide,      color: '#7f1d1d' },
+  { value: 'femicide',      Icon: HeartCrack, label: INCIDENT_LABELS.femicide,      color: '#be185d' },
 ]
 
 const STATUSES: { value: IncidentStatus; Icon: React.ElementType; label: string; color: string }[] = [
