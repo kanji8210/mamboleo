@@ -134,8 +134,9 @@ export function AdminPage() {
 
   const loginMutation = useMutation({
     mutationFn: () => loginAdmin(credentials.username, credentials.password, credentials.remember),
-    onSuccess: async () => {
+    onSuccess: async (session) => {
       toast.success('Admin session started')
+      queryClient.setQueryData(['admin-session'], session)
       await queryClient.invalidateQueries({ queryKey: ['admin-session'] })
       await queryClient.invalidateQueries({ queryKey: ['admin-dashboard'] })
       navigate('/admin', { replace: true })
@@ -284,6 +285,11 @@ export function AdminPage() {
                   </button>
                 )}
               </div>
+              {sessionQuery.data?.authenticated && (
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Session active{sessionQuery.data?.user?.name ? ` as ${sessionQuery.data.user.name}` : ''}
+                </p>
+              )}
               <form className="mt-4 space-y-3" onSubmit={handleLogin}>
                 <input
                   className="min-h-[46px] w-full rounded-2xl border border-input bg-background px-4"

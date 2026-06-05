@@ -2,6 +2,8 @@ type SessionResponse = {
   authenticated: boolean
   authorized: boolean
   nonce?: string
+  token?: string
+  authMode?: 'cookie' | 'token' | 'none'
   user?: {
     id: number
     username: string
@@ -93,6 +95,8 @@ type UpdatesResponse = {
 }
 
 let restNonce = ''
+const ADMIN_TOKEN_STORAGE_KEY = 'mamboleo_admin_token'
+let adminToken = typeof window !== 'undefined' ? window.localStorage.getItem(ADMIN_TOKEN_STORAGE_KEY) ?? '' : ''
 
 function trimTrailingSlash(value: string) {
   return value.replace(/\/$/, '')
@@ -153,6 +157,10 @@ async function request<T>(path: string, init: RequestInit = {}, useNonce = true)
     headers.set('X-WP-Nonce', restNonce)
   }
 
+  if (adminToken) {
+    headers.set('X-Mamboleo-Admin-Token', adminToken)
+  }
+
   const response = await fetch(`${apiBase()}${path}`, {
     ...init,
     headers,
@@ -173,6 +181,15 @@ async function request<T>(path: string, init: RequestInit = {}, useNonce = true)
 
 function stashNonce(session: SessionResponse) {
   restNonce = session.authorized && session.nonce ? session.nonce : ''
+  adminToken = session.authorized && session.token ? session.token : adminToken
+  if (typeof window !== 'undefined') {
+    if (session.authorized && session.token) {
+      window.localStorage.setItem(ADMIN_TOKEN_STORAGE_KEY, session.token)
+    } else if (!session.authorized) {
+      window.localStorage.removeItem(ADMIN_TOKEN_STORAGE_KEY)
+      adminToken = ''
+    }
+  }
 }
 
 export async function getAdminSession() {
@@ -197,6 +214,10 @@ export async function loginAdmin(username: string, password: string, remember: b
 export async function logoutAdmin() {
   await request<{ ok: boolean }>('/admin/session', { method: 'DELETE' }, false)
   restNonce = ''
+  adminToken = ''
+  if (typeof window !== 'undefined') {
+    window.localStorage.removeItem(ADMIN_TOKEN_STORAGE_KEY)
+  }
 }
 
 export function getAdminDashboard() {

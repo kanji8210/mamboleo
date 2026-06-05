@@ -2,12 +2,13 @@ import { useState, useEffect } from 'react'
 import { Link, NavLink, useNavigate, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Menu, X, Map, Radio, ChevronRight, Newspaper, BarChart2, Wifi } from 'lucide-react'
+import { useQuery } from '@tanstack/react-query'
+import { getAdminSession } from '@/lib/adminApi'
 
 const NAV_LINKS = [
   { to: '/', label: 'Home', exact: true },
   { to: '/map', label: 'Live Map' },
   { to: '/media', label: 'Media Monitor' },
-  { to: '/admin', label: 'Admin' },
   { to: '#features', label: 'Features', anchor: true },
   { to: '#about', label: 'About', anchor: true },
 ]
@@ -18,6 +19,16 @@ export function Header() {
   const navigate = useNavigate()
   const location = useLocation()
   const isMapPage = location.pathname === '/map'
+  const sessionQuery = useQuery({
+    queryKey: ['admin-session'],
+    queryFn: getAdminSession,
+    retry: false,
+    staleTime: 30_000,
+  })
+  const isAdmin = sessionQuery.data?.authorized === true
+  const navLinks = isAdmin
+    ? [{ to: '/admin', label: 'Console' }, ...NAV_LINKS]
+    : NAV_LINKS
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 16)
@@ -68,7 +79,7 @@ export function Header() {
 
           {/* ── Desktop nav ───────────────────────────────────────────── */}
           <nav className="hidden md:flex items-center gap-1">
-            {NAV_LINKS.map((link) =>
+            {navLinks.map((link) =>
               link.anchor ? (
                 <button
                   key={link.label}
@@ -146,7 +157,7 @@ export function Header() {
               className="fixed top-14 left-0 right-0 z-[1995] bg-card/98 backdrop-blur-xl border-b border-border shadow-2xl md:hidden"
             >
               <div className="p-4 flex flex-col gap-1">
-                {NAV_LINKS.map((link) =>
+                {navLinks.map((link) =>
                   link.anchor ? (
                     <button
                       key={link.label}
