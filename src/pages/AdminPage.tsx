@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Bot, LogOut, Play, RefreshCw, Search, ShieldCheck, TimerReset } from 'lucide-react'
 import { toast, Toaster } from 'sonner'
@@ -36,6 +36,7 @@ const LIFECYCLES = ['active', 'developing', 'resolved', 'archived']
 type EditorState = Partial<AdminIncident>
 
 export function AdminPage() {
+  const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [credentials, setCredentials] = useState({ username: '', password: '', remember: true })
   const [statusFilter, setStatusFilter] = useState<(typeof POST_STATUSES)[number]>('pending')
@@ -137,6 +138,7 @@ export function AdminPage() {
       toast.success('Admin session started')
       await queryClient.invalidateQueries({ queryKey: ['admin-session'] })
       await queryClient.invalidateQueries({ queryKey: ['admin-dashboard'] })
+      navigate('/admin', { replace: true })
     },
     onError: (error: Error) => toast.error(error.message),
   })
@@ -270,7 +272,18 @@ export function AdminPage() {
             </section>
 
             <section className="rounded-3xl border border-border bg-card p-6">
-              <h2 className="text-xl font-semibold">Admin login</h2>
+              <div className="flex items-center justify-between gap-3">
+                <h2 className="text-xl font-semibold">Admin login</h2>
+                {sessionQuery.data?.authenticated && (
+                  <button
+                    type="button"
+                    onClick={() => logoutMutation.mutate()}
+                    className="inline-flex min-h-[40px] items-center gap-2 rounded-full border border-border px-3 text-xs font-semibold text-muted-foreground hover:bg-accent"
+                  >
+                    <LogOut size={13} /> Logout
+                  </button>
+                )}
+              </div>
               <form className="mt-4 space-y-3" onSubmit={handleLogin}>
                 <input
                   className="min-h-[46px] w-full rounded-2xl border border-input bg-background px-4"
