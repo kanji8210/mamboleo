@@ -40,6 +40,8 @@ export function Sidebar({
     info: allIncidents.filter((i) => i.incidentFields.type === 'info').length,
     health: allIncidents.filter((i) => i.incidentFields.type === 'health').length,
     environmental: allIncidents.filter((i) => i.incidentFields.type === 'environmental').length,
+    homicide: allIncidents.filter((i) => i.incidentFields.type === 'homicide').length,
+    femicide: allIncidents.filter((i) => i.incidentFields.type === 'femicide').length,
   }
 
   // Sort: developing (admin-pinned breaking stories) first, then by date desc.

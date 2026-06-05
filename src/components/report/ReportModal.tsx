@@ -719,17 +719,15 @@ export function ReportModal({ isOpen, onClose, onSubmitSuccess }: ReportModalPro
           className="fixed inset-x-4 top-[50%] translate-y-[-50%] z-[810] mx-auto max-w-md bg-card border border-border rounded-2xl shadow-2xl overflow-hidden focus:outline-none sm:inset-x-auto sm:left-[50%] sm:translate-x-[-50%] sm:w-full"
           aria-labelledby="report-modal-title"
         >
+          {/* Keep an always-mounted Dialog.Title to satisfy Radix a11y checks. */}
+          <VisuallyHidden>
+            <Dialog.Title id="report-modal-title">Report Incident</Dialog.Title>
+          </VisuallyHidden>
+
           {/* Header */}
-          {/* Always render Dialog.Title for accessibility, visually hide when done */}
-          {done ? (
-            <VisuallyHidden>
-              <Dialog.Title id="report-modal-title">Report Incident</Dialog.Title>
-            </VisuallyHidden>
-          ) : (
+          {!done && (
             <div className="flex items-center justify-between px-5 py-4 border-b border-border">
-              <Dialog.Title id="report-modal-title" className="text-base font-bold text-foreground">
-                Report Incident
-              </Dialog.Title>
+              <h2 className="text-base font-bold text-foreground">Report Incident</h2>
               <Dialog.Close className="w-7 h-7 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-accent transition-colors">
                 <X size={15} />
               </Dialog.Close>

@@ -7,6 +7,7 @@ const NAV_LINKS = [
   { to: '/', label: 'Home', exact: true },
   { to: '/map', label: 'Live Map' },
   { to: '/media', label: 'Media Monitor' },
+  { to: '/admin', label: 'Admin' },
   { to: '#features', label: 'Features', anchor: true },
   { to: '#about', label: 'About', anchor: true },
 ]
