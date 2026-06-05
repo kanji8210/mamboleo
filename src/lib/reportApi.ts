@@ -1,4 +1,29 @@
-const WP_URL = import.meta.env.VITE_WP_URL ?? 'http://localhost/wordpress'
+function trimTrailingSlash(value: string): string {
+  return value.replace(/\/$/, '')
+}
+
+function deriveWpRoot(): string {
+  const explicitWp = import.meta.env.VITE_WP_URL as string | undefined
+  if (explicitWp) {
+    return trimTrailingSlash(explicitWp)
+  }
+
+  const endpoint = import.meta.env.VITE_GRAPHQL_ENDPOINT as string | undefined
+  if (endpoint) {
+    try {
+      const url = new URL(endpoint)
+      const path = url.pathname.replace(/\/$/, '')
+      const wpPath = path.endsWith('/graphql') ? path.slice(0, -'/graphql'.length) : path
+      return `${url.origin}${wpPath}`
+    } catch {
+      // Fall through to origin fallback
+    }
+  }
+
+  return window.location.origin
+}
+
+const WP_URL = deriveWpRoot()
 
 // ─── Decode WPGraphQL base64 ID → WordPress post ID ──────────────────────
 export function decodeWPGraphQLId(id: string): number {
@@ -91,6 +116,7 @@ export async function recordIncidentView(
 export interface ReportPayload {
   type: string
   status: string
+  severity?: string
   title: string
   latitude: number
   longitude: number
@@ -104,11 +130,27 @@ export interface ReportPayload {
 }
 
 export async function submitReport(data: ReportPayload): Promise<{ success: boolean; id: number; message: string }> {
+  const payload = {
+    title: data.title,
+    type: data.type,
+    latitude: data.latitude,
+    longitude: data.longitude,
+    severity: data.severity ?? 'low',
+    incident_time: data.incidentTime,
+    video_url: data.videoUrl,
+    reporter_name: data.reporterName,
+    reporter_phone: data.reporterPhone,
+    reporter_email: data.reporterEmail,
+    is_anonymous: data.isAnonymous,
+    status: data.status,
+    description: data.description,
+  }
+
   const res = await fetch(`${WP_URL}/wp-json/mamboleo/v1/report`, {
     method: 'POST',
     credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data),
+    body: JSON.stringify(payload),
   })
   if (!res.ok) {
     const err = await res.json().catch(() => ({})) as { message?: string }

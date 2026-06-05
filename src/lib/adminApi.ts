@@ -94,10 +94,38 @@ type UpdatesResponse = {
 
 let restNonce = ''
 
+function trimTrailingSlash(value: string) {
+  return value.replace(/\/$/, '')
+}
+
+function deriveWpRootFromGraphql(): string | null {
+  const endpoint = import.meta.env.VITE_GRAPHQL_ENDPOINT as string | undefined
+  if (!endpoint) return null
+
+  try {
+    const url = new URL(endpoint)
+    const path = url.pathname.replace(/\/$/, '')
+    const wpPath = path.endsWith('/graphql') ? path.slice(0, -'/graphql'.length) : path
+    return `${url.origin}${wpPath}`
+  } catch {
+    return null
+  }
+}
+
 function apiBase() {
   const envBase = import.meta.env.VITE_WORDPRESS_REST_BASE as string | undefined
   if (envBase) {
-    return envBase.replace(/\/$/, '')
+    return trimTrailingSlash(envBase)
+  }
+
+  const wpUrl = import.meta.env.VITE_WP_URL as string | undefined
+  if (wpUrl) {
+    return `${trimTrailingSlash(wpUrl)}/wp-json/mamboleo/v1`
+  }
+
+  const graphqlRoot = deriveWpRootFromGraphql()
+  if (graphqlRoot) {
+    return `${trimTrailingSlash(graphqlRoot)}/wp-json/mamboleo/v1`
   }
 
   return `${window.location.origin}/wp-json/mamboleo/v1`
