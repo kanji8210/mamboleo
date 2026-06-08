@@ -15,7 +15,7 @@ import { useIncidents } from '@/hooks/useIncidents'
 import { useWeatherAlerts } from '@/hooks/useWeatherAlerts'
 import type { Incident } from '@/types/incident'
 import { INCIDENT_COLORS, INCIDENT_LABELS, INCIDENT_BG, STATUS_LABELS, STATUS_COLORS, STATUS_BG, SEVERITY_BG, SEVERITY_COLORS } from '@/types/incident'
-import { fetchIncidentCommunity, corroborateIncident, hasCorroborated, markCorroborated, unmarkCorroborated, type IncidentCommunityEntry } from '@/lib/reportApi'
+import { decodeWPGraphQLId, fetchIncidentCommunity, corroborateIncident, hasCorroborated, markCorroborated, unmarkCorroborated, type IncidentCommunityEntry } from '@/lib/reportApi'
 import { stripHtml } from '@/lib/utils'
 import { IncidentMarker } from '@/components/map/IncidentMarker'
 import { MapController } from '@/components/map/MapController'
@@ -43,6 +43,36 @@ function getLocationLabel(incident: Incident): string {
   return fields.locationName ?? 'Mapped point'
 }
 
+function deriveWpRoot(): string {
+  const explicitWp = import.meta.env.VITE_WP_URL as string | undefined
+  if (explicitWp) return explicitWp.replace(/\/$/, '')
+
+  const endpoint = import.meta.env.VITE_GRAPHQL_ENDPOINT as string | undefined
+  if (endpoint) {
+    try {
+      const url = new URL(endpoint)
+      const path = url.pathname.replace(/\/$/, '')
+      const wpPath = path.endsWith('/graphql') ? path.slice(0, -'/graphql'.length) : path
+      return `${url.origin}${wpPath}`
+    } catch {
+      // Fall through to current origin.
+    }
+  }
+
+  return window.location.origin
+}
+
+type RestIncidentPayload = {
+  body?: string | null
+  excerpt?: string | { rendered?: string | null } | null
+  reviewReason?: string | null
+  review_reason?: string | null
+  content?: { rendered?: string | null } | null
+  meta?: {
+    review_reason?: string | null
+  } | null
+}
+
 export function IncidentPage() {
   const { id = '' } = useParams()
   const { allIncidents: allUserIncidents = [], isLoading } = useIncidents({ filter: 'all' })
@@ -59,6 +89,9 @@ export function IncidentPage() {
   const [confirmAtIncidentTime, setConfirmAtIncidentTime] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [localCount, setLocalCount] = useState<number | null>(null)
+  const [restBody, setRestBody] = useState('')
+  const [restExcerpt, setRestExcerpt] = useState('')
+  const [restReviewReason, setRestReviewReason] = useState('')
 
   const isConfirmed = incident ? hasCorroborated(incident.id) : false
   const count = localCount ?? (incident?.incidentFields.corroborationCount ?? 0)
@@ -82,6 +115,58 @@ export function IncidentPage() {
     if (!incident) return
     void loadCommunity()
   }, [incident, loadCommunity])
+
+  useEffect(() => {
+    let ignore = false
+    setRestBody('')
+    setRestExcerpt('')
+    setRestReviewReason('')
+
+    async function loadPostFallback() {
+      if (!incident) return
+      const postId = decodeWPGraphQLId(incident.id)
+      const wpRoot = deriveWpRoot()
+
+      try {
+        const detailResponse = await fetch(`${wpRoot}/wp-json/mamboleo/v1/incidents/${postId}/detail`, {
+          method: 'GET',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+        })
+
+        if (detailResponse.ok) {
+          const payload = (await detailResponse.json()) as RestIncidentPayload
+          if (!ignore) {
+            const detailExcerpt = typeof payload.excerpt === 'string' ? payload.excerpt : payload.excerpt?.rendered
+            setRestBody(stripHtml(payload.body ?? '').trim())
+            setRestExcerpt(stripHtml(detailExcerpt ?? '').trim())
+            setRestReviewReason(stripHtml(payload.reviewReason ?? payload.review_reason ?? '').trim())
+          }
+          return
+        }
+
+        const response = await fetch(`${wpRoot}/wp-json/wp/v2/incident/${postId}?_fields=content,excerpt,meta`, {
+          method: 'GET',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+        })
+        if (!response.ok || ignore) return
+        const payload = (await response.json()) as RestIncidentPayload
+        if (ignore) return
+        const coreExcerpt = typeof payload.excerpt === 'string' ? payload.excerpt : payload.excerpt?.rendered
+        setRestBody(stripHtml(payload.content?.rendered ?? '').trim())
+        setRestExcerpt(stripHtml(coreExcerpt ?? '').trim())
+        setRestReviewReason(stripHtml(payload.reviewReason ?? payload.review_reason ?? payload.meta?.review_reason ?? '').trim())
+      } catch {
+        // Best-effort fallback only.
+      }
+    }
+
+    void loadPostFallback()
+    return () => {
+      ignore = true
+    }
+  }, [incident])
 
   const handleCorroborate = useCallback(async () => {
     if (!incident || submitting) return
@@ -146,8 +231,9 @@ export function IncidentPage() {
   const sevBg = SEVERITY_BG[incident.incidentFields.severity]
   const statColor = STATUS_COLORS[incident.incidentFields.status]
   const statBg = STATUS_BG[incident.incidentFields.status]
-  const excerptText = stripHtml(incident.excerpt).trim()
-  const bodyText = stripHtml(incident.content).trim()
+  const excerptText = (stripHtml(incident.excerpt).trim() || restExcerpt).trim()
+  const bodyText = (stripHtml(incident.content).trim() || restBody || excerptText).trim()
+  const reviewReasonText = restReviewReason.trim()
 
   return (
     <div className="min-h-dvh bg-background">
@@ -214,6 +300,12 @@ export function IncidentPage() {
                   <h3 className="text-sm font-semibold text-foreground mb-2">Body</h3>
                   <p className="rounded-2xl border border-border bg-background/60 px-4 py-3 text-sm text-muted-foreground leading-relaxed whitespace-pre-line">
                     {bodyText || 'No body provided.'}
+                  </p>
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-foreground mb-2">Review reason</h3>
+                  <p className="rounded-2xl border border-border bg-background/60 px-4 py-3 text-sm text-muted-foreground leading-relaxed whitespace-pre-line">
+                    {reviewReasonText || 'No review reason provided.'}
                   </p>
                 </div>
                 <div>
