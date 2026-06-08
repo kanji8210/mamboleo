@@ -27,6 +27,7 @@ import {
   type AdminIncident,
 } from '@/lib/adminApi'
 
+const INCIDENT_SCOPES = ['active', 'pending', 'archived'] as const
 const POST_STATUSES = ['pending', 'publish', 'draft'] as const
 const INCIDENT_TYPES = ['fire', 'accident', 'police', 'weather', 'protest', 'flood', 'medical', 'military', 'info', 'health', 'environmental', 'homicide', 'femicide']
 const SEVERITIES = ['low', 'medium', 'high']
@@ -39,7 +40,7 @@ export function AdminPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [credentials, setCredentials] = useState({ username: '', password: '', remember: true })
-  const [statusFilter, setStatusFilter] = useState<(typeof POST_STATUSES)[number]>('pending')
+  const [incidentScope, setIncidentScope] = useState<(typeof INCIDENT_SCOPES)[number]>('active')
   const [search, setSearch] = useState('')
   const [reviewOnly, setReviewOnly] = useState(true)
   const [selectedIncidentId, setSelectedIncidentId] = useState<number | null>(null)
@@ -64,10 +65,10 @@ export function AdminPage() {
   })
 
   const incidentsQuery = useQuery({
-    queryKey: ['admin-incidents', statusFilter, search, reviewOnly],
+    queryKey: ['admin-incidents', incidentScope, search, reviewOnly],
     queryFn: () =>
       listAdminIncidents({
-        status: statusFilter,
+        scope: incidentScope,
         search,
         needsReview: reviewOnly ? true : undefined,
         page: 1,
@@ -128,8 +129,8 @@ export function AdminPage() {
   }, [selectedIncidentQuery.data])
 
   const selectedCounty = useMemo(
-    () => countiesQuery.data?.find((county) => county.slug === editor?.locationCounty),
-    [countiesQuery.data, editor?.locationCounty],
+    () => (editor?.locationCountry === 'kenya' ? countiesQuery.data?.find((county) => county.slug === editor?.locationCounty) : undefined),
+    [countiesQuery.data, editor?.locationCountry, editor?.locationCounty],
   )
 
   const loginMutation = useMutation({
@@ -372,9 +373,9 @@ export function AdminPage() {
                   />
                 </div>
                 <div className="mt-3 flex flex-wrap gap-2">
-                  {POST_STATUSES.map((s) => (
-                    <button key={s} type="button" onClick={() => setStatusFilter(s)} className={`rounded-full px-3 py-2 text-xs font-bold uppercase tracking-[0.16em] ${statusFilter === s ? 'bg-red-600 text-white' : 'bg-accent text-muted-foreground'}`}>
-                      {s}
+                  {INCIDENT_SCOPES.map((scope) => (
+                    <button key={scope} type="button" onClick={() => setIncidentScope(scope)} className={`rounded-full px-3 py-2 text-xs font-bold uppercase tracking-[0.16em] ${incidentScope === scope ? 'bg-red-600 text-white' : 'bg-accent text-muted-foreground'}`}>
+                      {scope}
                     </button>
                   ))}
                 </div>
@@ -416,13 +417,64 @@ export function AdminPage() {
                       <input aria-label="Incident time" type="datetime-local" className="min-h-[46px] rounded-2xl border border-input bg-background px-4" value={editor.incidentTime ?? ''} onChange={(event) => updateField('incidentTime', event.target.value)} />
                     </div>
                     <input className="min-h-[46px] w-full rounded-2xl border border-input bg-background px-4" value={editor.locationName ?? ''} onChange={(event) => updateField('locationName', event.target.value)} placeholder="Location label" />
+                    <input aria-label="Video URL" className="min-h-[46px] w-full rounded-2xl border border-input bg-background px-4" value={editor.videoUrl ?? ''} onChange={(event) => updateField('videoUrl', event.target.value)} placeholder="Video URL" />
                     <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                       <input aria-label="Latitude" type="number" step="0.000001" className="min-h-[46px] rounded-2xl border border-input bg-background px-4" value={editor.latitude ?? 0} onChange={(event) => updateField('latitude', Number(event.target.value))} />
                       <input aria-label="Longitude" type="number" step="0.000001" className="min-h-[46px] rounded-2xl border border-input bg-background px-4" value={editor.longitude ?? 0} onChange={(event) => updateField('longitude', Number(event.target.value))} />
-                      <select aria-label="Country" className="min-h-[46px] rounded-2xl border border-input bg-background px-4" value={editor.locationCountry ?? 'kenya'} onChange={(event) => updateField('locationCountry', event.target.value)}>{(countriesQuery.data ?? []).map((c) => <option key={c.slug} value={c.slug}>{c.name}</option>)}</select>
-                      <select aria-label="County" className="min-h-[46px] rounded-2xl border border-input bg-background px-4" value={editor.locationCounty ?? ''} onChange={(event) => updateField('locationCounty', event.target.value)}><option value="">Select county</option>{(countiesQuery.data ?? []).map((c) => <option key={c.slug} value={c.slug}>{c.name}</option>)}</select>
+                      <select
+                        aria-label="Country"
+                        className="min-h-[46px] rounded-2xl border border-input bg-background px-4"
+                        value={editor.locationCountry ?? 'kenya'}
+                        onChange={(event) => {
+                          const country = event.target.value
+                          updateField('locationCountry', country)
+                          if (country !== 'kenya') {
+                            updateField('locationCounty', '')
+                            updateField('locationSubcounty', '')
+                            updateField('locationPrecision', 'country')
+                          }
+                        }}
+                      >
+                        {(countriesQuery.data ?? []).map((c) => <option key={c.slug} value={c.slug}>{c.name}</option>)}
+                      </select>
+                      <select
+                        aria-label="County"
+                        className="min-h-[46px] rounded-2xl border border-input bg-background px-4"
+                        value={editor.locationCounty ?? ''}
+                        disabled={(editor.locationCountry ?? 'kenya') !== 'kenya'}
+                        onChange={(event) => updateField('locationCounty', event.target.value)}
+                      >
+                        <option value="">{(editor.locationCountry ?? 'kenya') === 'kenya' ? 'Select county' : 'Kenya only'}</option>
+                        {(editor.locationCountry ?? 'kenya') === 'kenya' && (countiesQuery.data ?? []).map((c) => <option key={c.slug} value={c.slug}>{c.name}</option>)}
+                      </select>
                     </div>
-                    <select aria-label="Subcounty" className="min-h-[46px] w-full rounded-2xl border border-input bg-background px-4" value={editor.locationSubcounty ?? ''} onChange={(event) => updateField('locationSubcounty', event.target.value)}><option value="">Select subcounty</option>{(selectedCounty?.subs ?? []).map((s) => <option key={s} value={s}>{s}</option>)}</select>
+                    <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                      <select
+                        aria-label="Subcounty"
+                        className="min-h-[46px] rounded-2xl border border-input bg-background px-4"
+                        value={editor.locationSubcounty ?? ''}
+                        disabled={(editor.locationCountry ?? 'kenya') !== 'kenya'}
+                        onChange={(event) => updateField('locationSubcounty', event.target.value)}
+                      >
+                        <option value="">{(editor.locationCountry ?? 'kenya') === 'kenya' ? 'Select subcounty' : 'Kenya only'}</option>
+                        {(editor.locationCountry ?? 'kenya') === 'kenya' && (selectedCounty?.subs ?? []).map((s) => <option key={s} value={s}>{s}</option>)}
+                      </select>
+                      <select aria-label="Location precision" className="min-h-[46px] rounded-2xl border border-input bg-background px-4" value={editor.locationPrecision ?? 'exact'} onChange={(event) => updateField('locationPrecision', event.target.value)}>
+                        {['exact', 'subcounty', 'county', 'country'].map((precision) => <option key={precision} value={precision}>{precision}</option>)}
+                      </select>
+                      <input aria-label="Reporter name" className="min-h-[46px] rounded-2xl border border-input bg-background px-4" value={editor.reporterName ?? ''} onChange={(event) => updateField('reporterName', event.target.value)} placeholder="Reporter name" />
+                    </div>
+                    <div className="grid gap-3 md:grid-cols-2">
+                      <label className="flex items-center gap-3 rounded-2xl border border-border bg-background px-4 py-3 text-sm text-muted-foreground">
+                        <input type="checkbox" checked={Boolean(editor.needsReview)} onChange={(event) => updateField('needsReview', event.target.checked)} />
+                        Needs review
+                      </label>
+                      <label className="flex items-center gap-3 rounded-2xl border border-border bg-background px-4 py-3 text-sm text-muted-foreground">
+                        <input type="checkbox" checked={Boolean(editor.isVerified)} onChange={(event) => updateField('isVerified', event.target.checked)} />
+                        Verified
+                      </label>
+                    </div>
+                    <textarea aria-label="Review reason" className="min-h-[90px] w-full rounded-2xl border border-input bg-background px-4 py-3" value={editor.reviewReason ?? ''} onChange={(event) => updateField('reviewReason', event.target.value)} placeholder="Review reason" />
                     <textarea className="min-h-[90px] w-full rounded-2xl border border-input bg-background px-4 py-3" value={editor.excerpt ?? ''} onChange={(event) => updateField('excerpt', event.target.value)} placeholder="Excerpt" />
                     <textarea className="min-h-[180px] w-full rounded-2xl border border-input bg-background px-4 py-3" value={editor.content ?? ''} onChange={(event) => updateField('content', event.target.value)} placeholder="Body" />
                     <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-4">

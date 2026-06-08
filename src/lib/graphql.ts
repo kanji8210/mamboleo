@@ -24,6 +24,7 @@ export const INCIDENTS_QUERY = gql`
         title
         date
         excerpt(format: RAW)
+        content(format: RAW)
         incidentFields {
           type
           latitude
@@ -66,6 +67,7 @@ function normalizeIncident(raw: RawIncident): Incident {
     title: raw.title,
     date: raw.date,
     excerpt: raw.excerpt ?? '',
+    content: raw.content ?? '',
     incidentFields: {
       type,
       latitude: Number.isFinite(lat) ? lat : 0,

@@ -48,6 +48,7 @@ export interface Incident {
   title: string
   date: string
   excerpt: string
+  content: string
   incidentFields: IncidentFields
 }
 
@@ -58,6 +59,7 @@ export interface RawIncident {
   title: string
   date: string
   excerpt: string
+  content?: string | null
   incidentFields: {
     type: string
     latitude: string | number

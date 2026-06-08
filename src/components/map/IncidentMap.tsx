@@ -11,7 +11,7 @@ import { MapController } from './MapController'
 import { MapLegend } from './MapLegend'
 import { UserLocationMarker } from './UserLocationMarker'
 
-const EAST_AFRICA: [number, number] = [-0.5, 36.5]
+const WORLD_CENTER: [number, number] = [20, 0]
 
 interface IncidentMapProps {
   incidents: Incident[]
@@ -92,7 +92,7 @@ export function IncidentMap({
       <LiveIndicator />
 
       {/* Map legend — doubles as a quick filter */}
-      <MapLegend filter={filter} onFilterChange={onFilterChange} />
+      <MapLegend incidents={allIncidents} filter={filter} onFilterChange={onFilterChange} />
 
       {/* Pick-location strip */}
       <AnimatePresence>
@@ -166,15 +166,15 @@ export function IncidentMap({
       </AnimatePresence>
 
       <MapContainer
-        center={EAST_AFRICA}
-        zoom={6}
-        minZoom={5}
+        center={WORLD_CENTER}
+        zoom={2}
+        minZoom={2}
         maxZoom={19}
         style={{ height: '100%', width: '100%' }}
         zoomControl={false}
         attributionControl={false}
       >
-        {/* Dark-friendly CartoDB tile layer.
+        {/* Dark tile layer with bright labels/borders for contrast.
             keepBuffer / updateWhenIdle / updateWhenZooming are tuned for
             slow networks: we keep older tiles visible during pan-zoom and
             only fetch new ones once the gesture settles, which cuts the
@@ -183,7 +183,7 @@ export function IncidentMap({
             failed tile doesn't render as a broken image. */}
         <TileLayer
           url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>'
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
           subdomains="abcd"
           maxZoom={19}
           keepBuffer={4}
@@ -191,6 +191,7 @@ export function IncidentMap({
           updateWhenZooming={false}
           crossOrigin
           errorTileUrl="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
+          className="mamboleo-map-tiles"
         />
 
         <MarkerClusterGroup

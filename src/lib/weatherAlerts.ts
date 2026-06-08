@@ -97,6 +97,7 @@ function buildAlert(source: WeatherSource, current: NonNullable<OpenMeteoRespons
     title,
     date: current.time,
     excerpt,
+    content: excerpt,
     incidentFields: {
       type: 'weather',
       latitude: source.latitude,

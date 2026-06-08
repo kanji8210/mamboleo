@@ -33,7 +33,7 @@ export function MapController({ target, incidents = [] }: MapControllerProps) {
       validPoints.map((f) => L.latLng(f.latitude, f.longitude)),
     )
     // Pad so markers aren't right at the edge; max zoom prevents over-zooming on 1 incident
-    map.fitBounds(bounds, { padding: [60, 60], maxZoom: 13, animate: true, duration: 1.0 })
+    map.fitBounds(bounds, { padding: [60, 60], maxZoom: 8, animate: true, duration: 1.0 })
     hasFittedRef.current = true
   }, [incidents, map])
 

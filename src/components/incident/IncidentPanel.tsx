@@ -292,6 +292,8 @@ function PanelContent({
     catch { return '' }
   })()
 
+  const reportText = stripHtml(incident.content || incident.excerpt)
+
   let incidentTimeFormatted: string | null = null
   if (incidentTime) {
     try { incidentTimeFormatted = format(parseISO(incidentTime), 'MMM d, HH:mm') }
@@ -387,10 +389,10 @@ function PanelContent({
           </div>
 
           {/* ── Description ────────────────────────────────────────── */}
-          {incident.excerpt && (
+          {reportText && (
             <section className="rounded-xl bg-muted/20 border border-border/50 px-3 py-2.5">
               <p className="text-[13px] text-muted-foreground leading-relaxed">
-                {stripHtml(incident.excerpt)}
+                {reportText}
               </p>
             </section>
           )}

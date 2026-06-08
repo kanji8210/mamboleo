@@ -225,6 +225,7 @@ export function getAdminDashboard() {
 }
 
 export function listAdminIncidents(params: {
+  scope?: 'active' | 'pending' | 'archived'
   status?: string
   search?: string
   needsReview?: boolean
@@ -232,6 +233,7 @@ export function listAdminIncidents(params: {
   perPage?: number
 }) {
   const query = new URLSearchParams()
+  if (params.scope) query.set('scope', params.scope)
   if (params.status) query.set('status', params.status)
   if (params.search) query.set('search', params.search)
   if (typeof params.needsReview === 'boolean') query.set('needsReview', String(params.needsReview))
