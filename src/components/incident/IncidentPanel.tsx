@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { toast } from 'sonner'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
@@ -15,7 +15,14 @@ import {
   SEVERITY_COLORS, SEVERITY_BG,
   STATUS_LABELS, STATUS_COLORS, STATUS_BG,
 } from '@/types/incident'
-import { corroborateIncident, hasCorroborated, markCorroborated, unmarkCorroborated } from '@/lib/reportApi'
+import {
+  corroborateIncident,
+  fetchIncidentCommunity,
+  hasCorroborated,
+  markCorroborated,
+  unmarkCorroborated,
+  type IncidentCommunityEntry,
+} from '@/lib/reportApi'
 import { stripHtml } from '@/lib/utils'
 
 // ─── Contextual guidance per type ────────────────────────────────────────
@@ -157,20 +164,67 @@ export function IncidentPanel({ incident, onClose }: IncidentPanelProps) {
   const [localCount, setLocalCount] = useState<number | null>(null)
   const [corroborating, setCorroborating] = useState(false)
   const [corroborated, setCorroborated] = useState(false)
+  const [confirmComment, setConfirmComment] = useState('')
+  const [confirmOnSite, setConfirmOnSite] = useState(false)
+  const [confirmAtIncidentTime, setConfirmAtIncidentTime] = useState(false)
+  const [community, setCommunity] = useState<IncidentCommunityEntry[]>([])
+  const [communityLoading, setCommunityLoading] = useState(false)
+  const [communityError, setCommunityError] = useState<string | null>(null)
 
   // Sync state when incident changes
   const effectiveCount = localCount ?? (incident?.incidentFields.corroborationCount ?? 0)
   const alreadyDone = incident ? hasCorroborated(incident.id) : false
 
+  const loadCommunity = useCallback(async () => {
+    if (!incident) return
+    setCommunityLoading(true)
+    setCommunityError(null)
+    try {
+      const data = await fetchIncidentCommunity(incident.id)
+      setCommunity(data.entries)
+      setLocalCount(data.count)
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Could not load confirmations'
+      setCommunityError(msg)
+    } finally {
+      setCommunityLoading(false)
+    }
+  }, [incident])
+
+  useEffect(() => {
+    if (!incident) {
+      setCommunity([])
+      setCommunityError(null)
+      return
+    }
+    void loadCommunity()
+  }, [incident, loadCommunity])
+
   async function handleCorroborate() {
     if (!incident || corroborating) return
     setCorroborating(true)
     try {
-      const { count, confirmed } = await corroborateIncident(incident.id)
+      const isAlreadyConfirmed = alreadyDone || corroborated
+      const { count, confirmed } = await corroborateIncident(
+        incident.id,
+        isAlreadyConfirmed
+          ? undefined
+          : {
+              comment: confirmComment.trim() || undefined,
+              onSite: confirmOnSite,
+              atIncidentTime: confirmAtIncidentTime,
+            },
+      )
       setLocalCount(count)
       setCorroborated(confirmed)
       if (confirmed) markCorroborated(incident.id)
       else unmarkCorroborated(incident.id)
+      if (confirmed) {
+        setConfirmComment('')
+        setConfirmOnSite(false)
+        setConfirmAtIncidentTime(false)
+      }
+      await loadCommunity()
     } catch (err) {
       // Rate-limit or network error — surface it briefly to the user.
       const msg = err instanceof Error ? err.message : 'Could not update confirmation'
@@ -193,6 +247,9 @@ export function IncidentPanel({ incident, onClose }: IncidentPanelProps) {
     if (prev?.id !== next?.id) {
       setLocalCount(null)
       setCorroborated(false)
+      setConfirmComment('')
+      setConfirmOnSite(false)
+      setConfirmAtIncidentTime(false)
     }
   }
 
@@ -236,6 +293,15 @@ export function IncidentPanel({ incident, onClose }: IncidentPanelProps) {
               effectiveCount={effectiveCount}
               isConfirmed={alreadyDone || corroborated}
               corroborating={corroborating}
+              confirmComment={confirmComment}
+              confirmOnSite={confirmOnSite}
+              confirmAtIncidentTime={confirmAtIncidentTime}
+              onConfirmCommentChange={setConfirmComment}
+              onConfirmOnSiteChange={setConfirmOnSite}
+              onConfirmAtIncidentTimeChange={setConfirmAtIncidentTime}
+              community={community}
+              communityLoading={communityLoading}
+              communityError={communityError}
               onCorroborate={handleCorroborate}
             />
           </motion.aside>
@@ -253,6 +319,15 @@ function PanelContent({
   effectiveCount,
   isConfirmed,
   corroborating,
+  confirmComment,
+  confirmOnSite,
+  confirmAtIncidentTime,
+  onConfirmCommentChange,
+  onConfirmOnSiteChange,
+  onConfirmAtIncidentTimeChange,
+  community,
+  communityLoading,
+  communityError,
   onCorroborate,
 }: {
   incident: Incident
@@ -260,6 +335,15 @@ function PanelContent({
   effectiveCount: number
   isConfirmed: boolean
   corroborating: boolean
+  confirmComment: string
+  confirmOnSite: boolean
+  confirmAtIncidentTime: boolean
+  onConfirmCommentChange: (value: string) => void
+  onConfirmOnSiteChange: (value: boolean) => void
+  onConfirmAtIncidentTimeChange: (value: boolean) => void
+  community: IncidentCommunityEntry[]
+  communityLoading: boolean
+  communityError: string | null
   onCorroborate: () => void
 }) {
   const {
@@ -476,10 +560,89 @@ function PanelContent({
                   ) : isConfirmed ? (
                     <><BadgeX size={11} /> Unconfirm</>
                   ) : (
-                    <><Eye size={11} /> I see this too</>
+                    <><Eye size={11} /> Confirm I see this</>
                   )}
                 </button>
               </div>
+              {!isConfirmed && (
+                <div className="mt-2.5 space-y-2">
+                  <label className="flex items-start gap-2 text-[11px] text-muted-foreground">
+                    <input
+                      type="checkbox"
+                      checked={confirmOnSite}
+                      onChange={(event) => onConfirmOnSiteChange(event.target.checked)}
+                      className="mt-0.5 h-3.5 w-3.5 rounded border-border bg-input"
+                    />
+                    <span>I am currently at or near this incident location.</span>
+                  </label>
+                  <label className="flex items-start gap-2 text-[11px] text-muted-foreground">
+                    <input
+                      type="checkbox"
+                      checked={confirmAtIncidentTime}
+                      onChange={(event) => onConfirmAtIncidentTimeChange(event.target.checked)}
+                      className="mt-0.5 h-3.5 w-3.5 rounded border-border bg-input"
+                    />
+                    <span>I witnessed this around the reported time.</span>
+                  </label>
+                  <textarea
+                    value={confirmComment}
+                    onChange={(event) => onConfirmCommentChange(event.target.value)}
+                    maxLength={400}
+                    rows={2}
+                    placeholder="Optional: add what you can confirm"
+                    className="w-full rounded-lg border border-border bg-input px-2.5 py-2 text-[12px] text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-ring/60 resize-none"
+                  />
+                </div>
+              )}
+            </section>
+          )}
+
+          {!incident.id.startsWith('weather-') && (
+            <section className="rounded-xl bg-muted/10 border border-border/50 px-3 py-2.5">
+              <p className="text-[10px] font-bold tracking-[0.18em] text-muted-foreground/50 uppercase font-mono mb-2">
+                Community confirmations
+              </p>
+              {communityLoading && (
+                <p className="text-[12px] text-muted-foreground animate-pulse">Loading confirmations…</p>
+              )}
+              {communityError && !communityLoading && (
+                <p className="text-[12px] text-amber-400">{communityError}</p>
+              )}
+              {!communityLoading && !communityError && community.length === 0 && (
+                <p className="text-[12px] text-muted-foreground">No community notes yet.</p>
+              )}
+              {!communityLoading && !communityError && community.length > 0 && (
+                <div className="space-y-2">
+                  {community.map((entry) => {
+                    let ago = 'recently'
+                    try {
+                      ago = formatDistanceToNow(parseISO(entry.createdAt), { addSuffix: true })
+                    } catch {
+                      ago = 'recently'
+                    }
+                    return (
+                      <div key={entry.id} className="rounded-lg border border-border/60 bg-background/40 px-2.5 py-2">
+                        <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground/70 mb-1.5">
+                          <Eye size={10} />
+                          <span>Community witness</span>
+                          <span className="ml-auto">{ago}</span>
+                        </div>
+                        <div className="flex flex-wrap gap-1 mb-1.5">
+                          {entry.onSite && (
+                            <span className="text-[10px] rounded-full border border-sky-900/50 bg-sky-950/40 text-sky-300 px-2 py-0.5">On site</span>
+                          )}
+                          {entry.atIncidentTime && (
+                            <span className="text-[10px] rounded-full border border-violet-900/50 bg-violet-950/40 text-violet-300 px-2 py-0.5">At reported time</span>
+                          )}
+                        </div>
+                        {entry.comment && (
+                          <p className="text-[12px] text-muted-foreground leading-relaxed">{entry.comment}</p>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
             </section>
           )}
 

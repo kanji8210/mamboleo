@@ -295,13 +295,22 @@ function StepWhere({
   function useGPS() {
     setLocating(true)
     setGpsError(null)
+    if (!navigator.geolocation) {
+      setGpsError('Location access is not available in this browser. Please pin on the map manually.')
+      setLocating(false)
+      return
+    }
     navigator.geolocation.getCurrentPosition(
       pos => {
         onChange({ lat: pos.coords.latitude, lng: pos.coords.longitude })
         setLocating(false)
       },
-      () => {
-        setGpsError('Could not get location. Try tapping the map instead.')
+      err => {
+        if (err.code === err.PERMISSION_DENIED) {
+          setGpsError('Location permission was denied. Please allow location access for more precise reporting, or tap the map.')
+        } else {
+          setGpsError('Could not get precise location. Try again or tap the map manually.')
+        }
         setLocating(false)
       },
       { enableHighAccuracy: true, timeout: 8000 }
@@ -331,7 +340,7 @@ function StepWhere({
   return (
     <div className="space-y-3">
       <p className="text-sm text-muted-foreground">
-        Pin the location. Tap the map, paste coordinates, or use your GPS.
+        Pin the location. For more precise reporting, allow location access when prompted, or tap the map/paste coordinates.
       </p>
 
       {/* Smart paste input — accepts "lat, lng" or a Google Maps URL */}

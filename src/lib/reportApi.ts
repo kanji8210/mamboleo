@@ -76,18 +76,48 @@ export function unmarkCorroborated(incidentId: string): void {
 // `credentials: 'include'` is required so the PHPSESSID cookie round-trips.
 export async function corroborateIncident(
   incidentId: string,
+  payload?: { comment?: string; onSite?: boolean; atIncidentTime?: boolean },
 ): Promise<{ count: number; confirmed: boolean }> {
   const postId = decodeWPGraphQLId(incidentId)
   const res = await fetch(`${WP_URL}/wp-json/mamboleo/v1/corroborate/${postId}`, {
     method: 'POST',
     credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      comment: payload?.comment,
+      on_site: payload?.onSite ?? false,
+      at_incident_time: payload?.atIncidentTime ?? false,
+    }),
   })
   if (!res.ok) {
     const err = await res.json().catch(() => ({})) as { message?: string }
     throw new Error(err.message ?? 'Could not update confirmation')
   }
   return res.json() as Promise<{ count: number; confirmed: boolean }>
+}
+
+export interface IncidentCommunityEntry {
+  id: string
+  createdAt: string
+  comment: string
+  onSite: boolean
+  atIncidentTime: boolean
+}
+
+export async function fetchIncidentCommunity(
+  incidentId: string,
+): Promise<{ count: number; entries: IncidentCommunityEntry[] }> {
+  const postId = decodeWPGraphQLId(incidentId)
+  const res = await fetch(`${WP_URL}/wp-json/mamboleo/v1/incidents/${postId}/community`, {
+    method: 'GET',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+  })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({})) as { message?: string }
+    throw new Error(err.message ?? 'Could not load community updates')
+  }
+  return res.json() as Promise<{ count: number; entries: IncidentCommunityEntry[] }>
 }
 
 // ─── Record a view on an incident (fire-and-forget) ──────────────────────
