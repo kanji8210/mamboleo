@@ -1,5 +1,5 @@
-import { useState, useCallback } from 'react'
-import { Link } from 'react-router-dom'
+import { useState, useCallback, useEffect, useRef } from 'react'
+import { Link, useLocation } from 'react-router-dom'
 import { Toaster } from 'sonner'
 import { Plus, Home, Newspaper, Radio } from 'lucide-react'
 
@@ -17,6 +17,7 @@ import { recordIncidentView } from '@/lib/reportApi'
 import type { Incident, FilterOption } from '@/types/incident'
 
 export function MapPage() {
+  const location = useLocation()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [filter, setFilter] = useState<FilterOption>('all')
   const [newIncidentIds, setNewIncidentIds] = useState<Set<string>>(new Set())
@@ -24,6 +25,7 @@ export function MapPage() {
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null)
   const [selectedIncident, setSelectedIncident] = useState<Incident | null>(null)
   const [isReportOpen, setIsReportOpen] = useState(false);
+  const appliedSearchRef = useRef<string | null>(null)
 
   // Fetch user-submitted incidents from WPGraphQL
   const {
@@ -65,6 +67,34 @@ export function MapPage() {
     filter === 'all'
       ? allIncidents
       : allIncidents.filter((i) => i.incidentFields.type === filter)
+
+  useEffect(() => {
+    if (!location.search || allIncidents.length === 0) return
+    if (appliedSearchRef.current === location.search) return
+
+    const params = new URLSearchParams(location.search)
+    const incidentId = params.get('incident')
+    const latParam = params.get('lat')
+    const lngParam = params.get('lng')
+
+    if (incidentId) {
+      const incident = allIncidents.find((entry) => entry.id === incidentId)
+      if (incident) {
+        setSelectedIncident(incident)
+        setMapTarget([incident.incidentFields.latitude, incident.incidentFields.longitude])
+      }
+    }
+
+    if (latParam && lngParam) {
+      const lat = Number(latParam)
+      const lng = Number(lngParam)
+      if (Number.isFinite(lat) && Number.isFinite(lng)) {
+        setMapTarget([lat, lng])
+      }
+    }
+
+    appliedSearchRef.current = location.search
+  }, [location.search, allIncidents])
 
   // Opening an incident = (1) select it to show the panel, (2) pan the map
   // to it, (3) fire-and-forget a view record on the server.

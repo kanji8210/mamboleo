@@ -262,10 +262,8 @@ export function LiveDataSection() {
                   const loc: string | undefined = inc.incidentFields.locationName
                   return (
                     <li key={inc.id}>
-                      <Link
-                        to="/map"
-                        className="flex items-start gap-3 px-6 py-3 hover:bg-card/60 transition-colors"
-                      >
+                      <div className="px-6 py-3 hover:bg-card/60 transition-colors">
+                        <div className="flex items-start gap-3">
                         <span
                           className="shrink-0 mt-0.5 w-8 h-8 rounded-lg flex items-center justify-center border"
                           style={{
@@ -299,7 +297,22 @@ export function LiveDataSection() {
                             <span className="font-mono">{ago}</span>
                           </div>
                         </div>
-                      </Link>
+                        </div>
+                        <div className="mt-2.5 flex flex-wrap gap-2">
+                          <Link
+                            to={`/incident/${encodeURIComponent(inc.id)}`}
+                            className="inline-flex items-center gap-1 rounded-lg border border-red-900/50 bg-red-950/30 px-2.5 py-1 text-[11px] font-semibold text-red-300 hover:bg-red-950/50 hover:text-red-200 transition-colors"
+                          >
+                            View full report
+                          </Link>
+                          <Link
+                            to={`/map?lat=${encodeURIComponent(String(inc.incidentFields.latitude))}&lng=${encodeURIComponent(String(inc.incidentFields.longitude))}`}
+                            className="inline-flex items-center gap-1 rounded-lg border border-border bg-background/60 px-2.5 py-1 text-[11px] font-semibold text-muted-foreground hover:text-foreground hover:bg-background transition-colors"
+                          >
+                            View on map
+                          </Link>
+                        </div>
+                      </div>
                     </li>
                   )
                 })}

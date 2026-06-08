@@ -91,47 +91,61 @@ function IncidentRow({ incident }: { incident: Incident }) {
 
   return (
     <li>
-      <Link
-        to="/map"
-        className="flex items-center gap-3 px-5 py-3 hover:bg-card/70 transition-colors group"
-      >
-        <span
-          className="shrink-0 w-7 h-7 rounded-lg flex items-center justify-center border"
-          style={{
-            backgroundColor: `${color}1a`,
-            borderColor: `${color}44`,
-          }}
-        >
-          <Flame size={12} style={{ color }} />
-        </span>
-        <div className="flex-1 min-w-0">
-          <p className="text-[13px] font-medium text-foreground line-clamp-1 group-hover:text-red-300 transition-colors">
-            {incident.title}
-          </p>
-          <div className="flex items-center gap-1.5 mt-0.5 text-[10px] text-muted-foreground">
-            <span
-              className="font-semibold uppercase tracking-wider"
-              style={{ color }}
-            >
-              {label}
-            </span>
-            {loc && (
-              <>
-                <span aria-hidden="true">·</span>
-                <span className="truncate">{loc}</span>
-              </>
-            )}
-            <span aria-hidden="true">·</span>
-            <span className="font-mono">{ago}</span>
+      <div className="px-5 py-3 hover:bg-card/70 transition-colors group">
+        <div className="flex items-center gap-3">
+          <span
+            className="shrink-0 w-7 h-7 rounded-lg flex items-center justify-center border"
+            style={{
+              backgroundColor: `${color}1a`,
+              borderColor: `${color}44`,
+            }}
+          >
+            <Flame size={12} style={{ color }} />
+          </span>
+          <div className="flex-1 min-w-0">
+            <p className="text-[13px] font-medium text-foreground line-clamp-1 group-hover:text-red-300 transition-colors">
+              {incident.title}
+            </p>
+            <div className="flex items-center gap-1.5 mt-0.5 text-[10px] text-muted-foreground">
+              <span
+                className="font-semibold uppercase tracking-wider"
+                style={{ color }}
+              >
+                {label}
+              </span>
+              {loc && (
+                <>
+                  <span aria-hidden="true">·</span>
+                  <span className="truncate">{loc}</span>
+                </>
+              )}
+              <span aria-hidden="true">·</span>
+              <span className="font-mono">{ago}</span>
+            </div>
           </div>
+          <motion.span
+            className="text-muted-foreground/40 group-hover:text-red-400 transition-colors"
+            aria-hidden="true"
+          >
+            <ArrowRight size={12} />
+          </motion.span>
         </div>
-        <motion.span
-          className="text-muted-foreground/40 group-hover:text-red-400 transition-colors"
-          aria-hidden="true"
-        >
-          <ArrowRight size={12} />
-        </motion.span>
-      </Link>
+
+        <div className="mt-2 flex flex-wrap gap-2">
+          <Link
+            to={`/incident/${encodeURIComponent(incident.id)}`}
+            className="inline-flex items-center gap-1 rounded-lg border border-red-900/50 bg-red-950/30 px-2.5 py-1 text-[10px] font-semibold text-red-300 hover:bg-red-950/50 hover:text-red-200 transition-colors"
+          >
+            View full report
+          </Link>
+          <Link
+            to={`/map?lat=${encodeURIComponent(String(incident.incidentFields.latitude))}&lng=${encodeURIComponent(String(incident.incidentFields.longitude))}`}
+            className="inline-flex items-center gap-1 rounded-lg border border-border bg-background/60 px-2.5 py-1 text-[10px] font-semibold text-muted-foreground hover:text-foreground hover:bg-background transition-colors"
+          >
+            View on map
+          </Link>
+        </div>
+      </div>
     </li>
   )
 }

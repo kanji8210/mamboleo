@@ -363,6 +363,7 @@ function PanelContent({
   const StatusIcon  = STATUS_ICONS[status]
   const guidance    = GUIDANCE[type]
   const mapsUrl     = `https://maps.google.com?q=${latitude},${longitude}`
+  const fullReportUrl = `/incident/${encodeURIComponent(incident.id)}`
 
   let postDate: string
   try {
@@ -480,6 +481,23 @@ function PanelContent({
               </p>
             </section>
           )}
+
+          <section className="flex flex-wrap gap-2">
+            <a
+              href={fullReportUrl}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-red-900/50 bg-red-950/30 px-3 py-2 text-[12px] font-semibold text-red-300 hover:bg-red-950/50 hover:text-red-200 transition-colors"
+            >
+              View full report
+            </a>
+            <a
+              href={mapsUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-muted/20 px-3 py-2 text-[12px] font-semibold text-muted-foreground hover:text-foreground hover:bg-muted/30 transition-colors"
+            >
+              View on map
+            </a>
+          </section>
 
           {/* ── Location ───────────────────────────────────────────── */}
           <section className="flex items-center justify-between gap-2 rounded-xl bg-muted/10 border border-border/50 px-3 py-2">

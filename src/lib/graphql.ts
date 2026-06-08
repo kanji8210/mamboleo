@@ -115,6 +115,35 @@ export const INCIDENTS_QUERY = gql`
   }
 `
 
+const INCIDENTS_QUERY_LEGACY = gql`
+  query GetIncidentsLegacy {
+    incidents(first: 100, where: { orderby: { field: DATE, order: DESC } }) {
+      nodes {
+        id
+        title
+        date
+        excerpt(format: RAW)
+        incidentFields {
+          type
+          latitude
+          longitude
+          severity
+          status
+          incidentTime
+          videoUrl
+          reporterName
+          isAnonymous
+          isVerified
+          corroborationCount
+          lifecycle
+          lastUpdateAt
+          updateCount
+        }
+      }
+    }
+  }
+`
+
 const KNOWN_TYPES = new Set(['fire', 'accident', 'police', 'weather', 'protest', 'flood', 'medical', 'military', 'info', 'health', 'environmental', 'homicide', 'femicide'])
 
 function normalizeIncident(raw: RawIncident): Incident {
@@ -157,7 +186,18 @@ function normalizeIncident(raw: RawIncident): Incident {
 }
 
 export async function fetchIncidents(): Promise<Incident[]> {
-  const data = await graphqlClient.request<IncidentsQueryResult>(INCIDENTS_QUERY)
+  let data: IncidentsQueryResult
+  try {
+    data = await graphqlClient.request<IncidentsQueryResult>(INCIDENTS_QUERY)
+  } catch (err) {
+    const message = err instanceof Error ? err.message : ''
+    if (message.includes('Cannot query field "content"')) {
+      data = await graphqlClient.request<IncidentsQueryResult>(INCIDENTS_QUERY_LEGACY)
+    } else {
+      throw err
+    }
+  }
+
   return data.incidents.nodes
     .map(normalizeIncident)
     // Drop incidents with invalid coordinates — they can't be plotted

@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Header } from '@/components/layout/Header'
 import { Footer } from '@/components/layout/Footer'
 import { LandingPage } from '@/pages/LandingPage'
+import { IncidentPage } from '@/pages/IncidentPage'
 import { MapPage } from '@/pages/MapPage'
 import { MediaPage } from '@/pages/MediaPage'
 import { AdminPage } from '@/pages/AdminPage'
@@ -30,6 +31,7 @@ function AppShell() {
       <Header />
       <Routes>
         <Route path="/" element={<LandingPage />} />
+        <Route path="/incident/:id" element={<IncidentPage />} />
         <Route path="/map" element={<MapPage />} />
         <Route path="/media" element={<MediaPage />} />
         <Route path="/admin" element={<AdminPage />} />
