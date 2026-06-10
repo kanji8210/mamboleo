@@ -97,6 +97,7 @@ type UpdatesResponse = {
 let restNonce = ''
 const ADMIN_TOKEN_STORAGE_KEY = 'mamboleo_admin_token'
 let adminToken = typeof window !== 'undefined' ? window.localStorage.getItem(ADMIN_TOKEN_STORAGE_KEY) ?? '' : ''
+let adminAuthMode: SessionResponse['authMode'] = 'none'
 
 function trimTrailingSlash(value: string) {
   return value.replace(/\/$/, '')
@@ -146,14 +147,32 @@ async function parseJson(response: Response) {
   }
 }
 
+function isNonceAuthError(response: Response, data: unknown) {
+  if (response.status !== 401 && response.status !== 403) {
+    return false
+  }
+
+  if (data && typeof data === 'object' && 'code' in data && data.code === 'rest_cookie_invalid_nonce') {
+    return true
+  }
+
+  const message =
+    data && typeof data === 'object' && 'message' in data && typeof data.message === 'string'
+      ? data.message.toLowerCase()
+      : ''
+
+  return message.includes('cookie check failed') || message.includes('nonce')
+}
+
 async function request<T>(path: string, init: RequestInit = {}, useNonce = true): Promise<T> {
   const headers = new Headers(init.headers)
+  const usingTokenAuth = adminAuthMode === 'token' && adminToken !== ''
 
   if (!headers.has('Content-Type') && init.body) {
     headers.set('Content-Type', 'application/json')
   }
 
-  if (useNonce && restNonce) {
+  if (useNonce && restNonce && !usingTokenAuth) {
     headers.set('X-WP-Nonce', restNonce)
   }
 
@@ -161,13 +180,42 @@ async function request<T>(path: string, init: RequestInit = {}, useNonce = true)
     headers.set('X-Mamboleo-Admin-Token', adminToken)
   }
 
-  const response = await fetch(`${apiBase()}${path}`, {
+  let response = await fetch(`${apiBase()}${path}`, {
     ...init,
     headers,
-    credentials: 'include',
+    credentials: usingTokenAuth ? 'omit' : 'include',
   })
 
-  const data = await parseJson(response)
+  let data = await parseJson(response)
+
+  if (!response.ok && useNonce && isNonceAuthError(response, data)) {
+    try {
+      await getAdminSession()
+    } catch {
+      // If session refresh fails, preserve original error from the request below.
+    }
+
+    const retryHeaders = new Headers(init.headers)
+    const retryUsingTokenAuth = adminAuthMode === 'token' && adminToken !== ''
+
+    if (!retryHeaders.has('Content-Type') && init.body) {
+      retryHeaders.set('Content-Type', 'application/json')
+    }
+    if (useNonce && restNonce && !retryUsingTokenAuth) {
+      retryHeaders.set('X-WP-Nonce', restNonce)
+    }
+    if (adminToken) {
+      retryHeaders.set('X-Mamboleo-Admin-Token', adminToken)
+    }
+
+    response = await fetch(`${apiBase()}${path}`, {
+      ...init,
+      headers: retryHeaders,
+      credentials: retryUsingTokenAuth ? 'omit' : 'include',
+    })
+    data = await parseJson(response)
+  }
+
   if (!response.ok) {
     const message =
       data && typeof data === 'object' && 'message' in data && typeof data.message === 'string'
@@ -181,6 +229,7 @@ async function request<T>(path: string, init: RequestInit = {}, useNonce = true)
 
 function stashNonce(session: SessionResponse) {
   restNonce = session.authorized && session.nonce ? session.nonce : ''
+  adminAuthMode = session.authorized ? (session.authMode ?? 'none') : 'none'
   adminToken = session.authorized && session.token ? session.token : adminToken
   if (typeof window !== 'undefined') {
     if (session.authorized && session.token) {
@@ -214,6 +263,7 @@ export async function loginAdmin(username: string, password: string, remember: b
 export async function logoutAdmin() {
   await request<{ ok: boolean }>('/admin/session', { method: 'DELETE' }, false)
   restNonce = ''
+  adminAuthMode = 'none'
   adminToken = ''
   if (typeof window !== 'undefined') {
     window.localStorage.removeItem(ADMIN_TOKEN_STORAGE_KEY)

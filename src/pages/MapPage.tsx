@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { Toaster } from 'sonner'
-import { Plus, Home, Newspaper, Radio } from 'lucide-react'
+import { Plus, Home, Newspaper, Radio, ListFilter } from 'lucide-react'
 
 import { IncidentMap } from '@/components/map/IncidentMap'
 import { LiveIndicator } from '@/components/map/LiveIndicator'
@@ -127,6 +127,13 @@ export function MapPage() {
             </span>
           </div>
           <div className="flex items-center gap-1.5">
+            <button
+              className="flex items-center gap-1 bg-card/70 hover:bg-accent text-foreground text-xs font-semibold rounded-full px-3 py-1.5 border border-border transition-colors"
+              onClick={() => setSidebarOpen(true)}
+              title="Open incidents list"
+            >
+              <ListFilter size={14} /> <span className="hidden sm:inline">List</span>
+            </button>
             {/* Quick nav to leave map view */}
             <Link
               to="/"

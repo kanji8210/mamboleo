@@ -26,9 +26,10 @@ export function Header() {
     staleTime: 30_000,
   })
   const isAdmin = sessionQuery.data?.authorized === true
-  const navLinks = isAdmin
-    ? [{ to: '/admin', label: 'Console' }, ...NAV_LINKS]
-    : NAV_LINKS
+  const navLinks = [
+    { to: '/admin', label: isAdmin ? 'Console' : 'Admin Login' },
+    ...NAV_LINKS,
+  ]
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 16)

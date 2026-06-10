@@ -1,9 +1,13 @@
 import { motion, AnimatePresence } from 'framer-motion'
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { X, Radio, AlertTriangle, Activity } from 'lucide-react'
 import type { Incident, FilterOption } from '@/types/incident'
 import { IncidentListItem } from './IncidentListItem'
 import { FilterBar } from './FilterBar'
+
+type SeverityFilter = 'all' | 'low' | 'medium' | 'high'
+type StatusFilter = 'all' | Incident['incidentFields']['status']
+type LifecycleFilter = 'all' | Incident['incidentFields']['lifecycle']
 
 interface SidebarProps {
   isOpen: boolean
@@ -26,6 +30,11 @@ export function Sidebar({
   newIncidentIds,
   onIncidentClick,
 }: SidebarProps) {
+  const [search, setSearch] = useState('')
+  const [severity, setSeverity] = useState<SeverityFilter>('all')
+  const [status, setStatus] = useState<StatusFilter>('all')
+  const [lifecycle, setLifecycle] = useState<LifecycleFilter>('all')
+
   // Counts per type for filter badges
   const counts: Record<FilterOption, number> = {
     all: allIncidents.length,
@@ -44,15 +53,42 @@ export function Sidebar({
     femicide: allIncidents.filter((i) => i.incidentFields.type === 'femicide').length,
   }
 
+  const filteredIncidents = useMemo(() => {
+    const searchText = search.trim().toLowerCase()
+    return incidents.filter((incident) => {
+      if (severity !== 'all' && incident.incidentFields.severity !== severity) {
+        return false
+      }
+      if (status !== 'all' && incident.incidentFields.status !== status) {
+        return false
+      }
+      if (lifecycle !== 'all' && incident.incidentFields.lifecycle !== lifecycle) {
+        return false
+      }
+      if (!searchText) {
+        return true
+      }
+
+      const location = ((incident.incidentFields as Incident['incidentFields'] & { locationName?: string | null }).locationName ?? '').toLowerCase()
+      return (
+        incident.title.toLowerCase().includes(searchText) ||
+        incident.excerpt.toLowerCase().includes(searchText) ||
+        location.includes(searchText)
+      )
+    })
+  }, [incidents, search, severity, status, lifecycle])
+
   // Sort: developing (admin-pinned breaking stories) first, then by date desc.
-  // Stable sort — incidents already arrive newest-first from the GraphQL query.
   const sortedIncidents = useMemo(() => {
-    return [...incidents].sort((a, b) => {
+    return [...filteredIncidents].sort((a, b) => {
       const aDev = a.incidentFields.lifecycle === 'developing' ? 1 : 0
       const bDev = b.incidentFields.lifecycle === 'developing' ? 1 : 0
-      return bDev - aDev
+      if (bDev !== aDev) {
+        return bDev - aDev
+      }
+      return new Date(b.date).getTime() - new Date(a.date).getTime()
     })
-  }, [incidents])
+  }, [filteredIncidents])
 
   const developingCount = sortedIncidents.filter(
     (i) => i.incidentFields.lifecycle === 'developing',
@@ -111,7 +147,7 @@ export function Sidebar({
               <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
                 <Activity size={11} />
                 <span>
-                  <span className="text-foreground font-semibold">{incidents.length}</span>
+                  <span className="text-foreground font-semibold">{sortedIncidents.length}</span>
                   {' '}of{' '}
                   <span className="text-foreground font-semibold">{allIncidents.length}</span>
                   {' '}incidents
@@ -134,23 +170,71 @@ export function Sidebar({
               <FilterBar active={filter} onChange={onFilterChange} counts={counts} />
             </div>
 
+            {/* Advanced filters */}
+            <div className="px-3 py-2.5 border-b border-border/60 bg-background/20 space-y-2.5">
+              <input
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Search title, location, excerpt"
+                className="w-full min-h-[40px] rounded-lg border border-input bg-background px-3 text-xs"
+              />
+              <div className="grid grid-cols-3 gap-2">
+                <select
+                  value={severity}
+                  onChange={(event) => setSeverity(event.target.value as SeverityFilter)}
+                  className="min-h-[36px] rounded-lg border border-input bg-background px-2 text-[11px]"
+                  aria-label="Filter by severity"
+                >
+                  <option value="all">Severity</option>
+                  <option value="low">Low</option>
+                  <option value="medium">Medium</option>
+                  <option value="high">High</option>
+                </select>
+                <select
+                  value={status}
+                  onChange={(event) => setStatus(event.target.value as StatusFilter)}
+                  className="min-h-[36px] rounded-lg border border-input bg-background px-2 text-[11px]"
+                  aria-label="Filter by status"
+                >
+                  <option value="all">Status</option>
+                  <option value="unsafe">Unsafe</option>
+                  <option value="all_clear">All Clear</option>
+                  <option value="police_operating">Police Operating</option>
+                  <option value="police_aggressive">Police Aggressive</option>
+                  <option value="unknown">Unknown</option>
+                </select>
+                <select
+                  value={lifecycle}
+                  onChange={(event) => setLifecycle(event.target.value as LifecycleFilter)}
+                  className="min-h-[36px] rounded-lg border border-input bg-background px-2 text-[11px]"
+                  aria-label="Filter by lifecycle"
+                >
+                  <option value="all">Lifecycle</option>
+                  <option value="active">Active</option>
+                  <option value="developing">Developing</option>
+                  <option value="resolved">Resolved</option>
+                  <option value="archived">Archived</option>
+                </select>
+              </div>
+            </div>
+
             {/* Incident list */}
             <div className="flex-1 overflow-y-auto overscroll-contain">
-              {incidents.length === 0 ? (
+              {sortedIncidents.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-40 gap-3 text-muted-foreground">
                   <AlertTriangle size={28} className="opacity-30" />
-                  <p className="text-sm">No incidents found</p>
+                  <p className="text-sm">No incidents match these filters</p>
                 </div>
               ) : (
-                <motion.ul layout className="pb-4">
+                <motion.div layout className="pb-4">
                   {developingCount > 0 && (
-                    <li className="px-3 pt-3 pb-1.5 text-[10px] font-extrabold tracking-[0.18em] uppercase text-orange-400 flex items-center gap-1.5">
+                    <div className="px-3 pt-3 pb-1.5 text-[10px] font-extrabold tracking-[0.18em] uppercase text-orange-400 flex items-center gap-1.5">
                       <Radio size={10} className="animate-pulse" />
                       Developing · {developingCount}
-                    </li>
+                    </div>
                   )}
                   {sortedIncidents.map((incident) => (
-                    <li key={incident.id}>
+                    <div key={incident.id}>
                       <IncidentListItem
                         incident={incident}
                         isNew={newIncidentIds.has(incident.id)}
@@ -159,9 +243,9 @@ export function Sidebar({
                           onClose()
                         }}
                       />
-                    </li>
+                    </div>
                   ))}
-                </motion.ul>
+                </motion.div>
               )}
             </div>
 
