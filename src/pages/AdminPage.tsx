@@ -405,7 +405,10 @@ export function AdminPage() {
                 {!editor && <div className="mt-3 rounded-2xl border border-dashed border-border p-4 text-sm text-muted-foreground">Select an incident to edit.</div>}
                 {editor && (
                   <form className="mt-3 space-y-3" onSubmit={handleSave}>
-                    <input aria-label="Incident title" className="min-h-[46px] w-full rounded-2xl border border-input bg-background px-4" value={editor.title ?? ''} onChange={(event) => updateField('title', event.target.value)} />
+                    <label className="block space-y-1.5">
+                      <span className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Title</span>
+                      <input aria-label="Incident title" className="min-h-[46px] w-full rounded-2xl border border-input bg-background px-4" value={editor.title ?? ''} onChange={(event) => updateField('title', event.target.value)} />
+                    </label>
                     <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                       <select aria-label="Post status" className="min-h-[46px] rounded-2xl border border-input bg-background px-4" value={editor.status ?? 'pending'} onChange={(event) => updateField('status', event.target.value)}>{POST_STATUSES.map((v) => <option key={v} value={v}>{v}</option>)}</select>
                       <select aria-label="Incident type" className="min-h-[46px] rounded-2xl border border-input bg-background px-4" value={editor.type ?? 'fire'} onChange={(event) => updateField('type', event.target.value)}>{INCIDENT_TYPES.map((v) => <option key={v} value={v}>{v}</option>)}</select>
@@ -475,8 +478,14 @@ export function AdminPage() {
                       </label>
                     </div>
                     <textarea aria-label="Review reason" className="min-h-[90px] w-full rounded-2xl border border-input bg-background px-4 py-3" value={editor.reviewReason ?? ''} onChange={(event) => updateField('reviewReason', event.target.value)} placeholder="Review reason" />
-                    <textarea className="min-h-[90px] w-full rounded-2xl border border-input bg-background px-4 py-3" value={editor.excerpt ?? ''} onChange={(event) => updateField('excerpt', event.target.value)} placeholder="Excerpt" />
-                    <textarea className="min-h-[180px] w-full rounded-2xl border border-input bg-background px-4 py-3" value={editor.content ?? ''} onChange={(event) => updateField('content', event.target.value)} placeholder="Body" />
+                    <label className="block space-y-1.5">
+                      <span className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Excerpt</span>
+                      <textarea aria-label="Incident excerpt" className="min-h-[90px] w-full rounded-2xl border border-input bg-background px-4 py-3" value={editor.excerpt ?? ''} onChange={(event) => updateField('excerpt', event.target.value)} placeholder="Short summary shown in lists and previews" />
+                    </label>
+                    <label className="block space-y-1.5">
+                      <span className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Details</span>
+                      <textarea aria-label="Incident details" className="min-h-[180px] w-full rounded-2xl border border-input bg-background px-4 py-3" value={editor.content ?? ''} onChange={(event) => updateField('content', event.target.value)} placeholder="Full incident details" />
+                    </label>
                     <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-4">
                       <button type="submit" className="min-h-[46px] rounded-2xl bg-red-600 px-4 text-sm font-bold text-white">Save incident</button>
                       <button type="button" onClick={() => reviewMutation.mutate({ id: editor.id as number, action: 'approve' })} className="min-h-[46px] rounded-2xl border border-emerald-500/30 bg-emerald-500/10 px-4 text-sm font-semibold text-emerald-100">Approve</button>

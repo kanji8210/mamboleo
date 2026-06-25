@@ -429,8 +429,9 @@ function StepDetails({ form, onChange }: { form: FormState; onChange: (p: Partia
     <div className="space-y-4">
       {/* County selection */}
       <div>
-        <label className="text-xs font-medium text-muted-foreground block mb-1.5">County</label>
+        <label htmlFor="report-county" className="text-xs font-medium text-muted-foreground block mb-1.5">County</label>
         <select
+          id="report-county"
           className="w-full bg-input border border-border rounded-xl px-4 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-red-500/40"
           value={form.county || ''}
           onChange={e => {
@@ -446,8 +447,9 @@ function StepDetails({ form, onChange }: { form: FormState; onChange: (p: Partia
       </div>
       {/* Subcounty selection */}
       <div>
-        <label className="text-xs font-medium text-muted-foreground block mb-1.5">Subcounty</label>
+        <label htmlFor="report-subcounty" className="text-xs font-medium text-muted-foreground block mb-1.5">Subcounty</label>
         <select
+          id="report-subcounty"
           className="w-full bg-input border border-border rounded-xl px-4 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-red-500/40"
           value={form.subcounty || ''}
           onChange={e => {
@@ -472,10 +474,11 @@ function StepDetails({ form, onChange }: { form: FormState; onChange: (p: Partia
       </div>
       {/* Title */}
       <div>
-        <label className="text-xs font-medium text-muted-foreground block mb-1.5">
+        <label htmlFor="report-title" className="text-xs font-medium text-muted-foreground block mb-1.5">
           Title <span className="text-red-400">*</span>
         </label>
         <input
+          id="report-title"
           type="text"
           placeholder="e.g. Fire at Kenyatta Market, Kibra"
           value={form.title}
@@ -492,22 +495,24 @@ function StepDetails({ form, onChange }: { form: FormState; onChange: (p: Partia
       </div>
       {/* When did this happen */}
       <div>
-        <label className="text-xs font-medium text-muted-foreground block mb-1.5">
+        <label htmlFor="report-incident-time" className="text-xs font-medium text-muted-foreground block mb-1.5">
           When did this happen?
         </label>
         <input
+          id="report-incident-time"
           type="datetime-local"
           value={form.incidentTime}
           onChange={e => onChange({ incidentTime: e.target.value })}
           className="w-full bg-input border border-border rounded-xl px-4 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-red-500/40"
         />
       </div>
-      {/* Description */}
+      {/* Details */}
       <div>
-        <label className="text-xs font-medium text-muted-foreground block mb-1.5">
-          Description <span className="text-muted-foreground/50 text-[10px]">(optional)</span>
+        <label htmlFor="report-details" className="text-xs font-medium text-muted-foreground block mb-1.5">
+          Details <span className="text-muted-foreground/50 text-[10px]">(optional)</span>
         </label>
         <textarea
+          id="report-details"
           placeholder="e.g. Large fire broke out at Kenyatta Market stalls. Heavy smoke visible, emergency services on site."
           value={form.description}
           onChange={e => onChange({ description: e.target.value })}
@@ -572,7 +577,7 @@ function StepReview({ form }: { form: FormState }) {
         />
         <Row label="Title" value={form.title || '—'} />
         <Row label="Time" value={form.incidentTime ? form.incidentTime.replace('T', ' ') : '—'} />
-        {form.description && <Row label="Description" value={form.description} />}
+        {form.description && <Row label="Details" value={form.description} />}
         {form.videoUrl && <Row label="Video" value={form.videoUrl} />}
       </div>
 
